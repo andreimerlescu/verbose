@@ -136,27 +136,19 @@ type secretPattern []string
 
 type secretPatterns map[secretPatternLength]secretPattern
 
-func (sp *secretPatterns) Validate() error {
-	if sp == nil || len(*sp) == 0 {
+func (sp secretPatterns) Validate() error {
+	if sp == nil || len(sp) == 0 {
 		return fmt.Errorf("secretPatterns map is empty or nil")
 	}
-	var key *string
-	var value *string
-	for key, value = range *sp {
-		if *key == "" {
+	for key, value := range sp {
+		if key == 0 {
 			return fmt.Errorf("invalid key: empty string")
 		}
-		if *value == "" {
-			return fmt.Errorf("invalid value for key %s: empty string", *key)
+		if len(value) == 0 {
+			return fmt.Errorf("invalid value for key %d: empty string", key)
 		}
 	}
 	return nil
-}
-
-var commonSecretPatterns = secretPatterns{
-	256: {"op_"},
-	40:  {"glpat"},
-	32:  {"ghp"},
 }
 
 const (
@@ -165,64 +157,3 @@ const (
 	MinSecretLength        int = 3
 	MaxSecretLength        int = 1024
 )
-
-func validateInputSecretPattern(pattern string, secretLength int) error {
-	if len(pattern) == 0 {
-		return fmt.Errorf("error at RemoveSecretPattern with pattern length 0")
-	}
-	if secretLength != 0 && secretLength < SecretMinLength {
-		return fmt.Errorf("error at RemoveSecretPattern with secretLength < %d", SecretMinLength)
-	}
-	return nil
-}
-
-func RemoveSecretPattern(toRemove string, secretLength int) error {
-	if err := validateInputSecretPattern(toRemove, secretLength); err != nil {
-		return err
-	}
-	patterns, exists := commonSecretPatterns[secretPatternLength(secretLength)]
-	if !exists {
-		return nil
-	}
-	var newPatternSecrets []string
-	var noDuplicates map[string]struct{}
-	for _, pattern := range patterns {
-		// skip empty
-		if len(pattern) == 0 {
-			continue
-		}
-		// skip duplicates
-		if _, exists := noDuplicates[pattern]; exists {
-			continue
-		}
-		// pattern to remove
-		if strings.EqualFold(toRemove, pattern) {
-			continue
-		}
-		// add to noDuplicates
-		noDuplicates[pattern] = struct{}{}
-		// add to newPatternSecrets
-		newPatternSecrets = append(newPatternSecrets, pattern)
-	}
-	// set newPatternSecrets back to commonSecretPatterns for secretLength
-	commonSecretPatterns[secretPatternLength(secretLength)] = newPatternSecrets
-	// no errors removing entry
-	return nil
-}
-
-func AddSecretPattern(pattern string, secretLength int) error {
-	if err := validateInputSecretPattern(pattern, secretLength); err != nil {
-		return err
-	}
-	_, exists := commonSecretPatterns[secretPatternLength(secretLength)]
-	if exists {
-		commonSecretPatterns[secretPatternLength(secretLength)] = append(commonSecretPatterns[secretPatternLength(secretLength)], pattern)
-	} else {
-		commonSecretPatterns[secretPatternLength(secretLength)] = []string{pattern}
-	}
-	_, exists = commonSecretPatterns[secretPatternLength(secretLength)]
-	if !exists {
-		return fmt.Errorf("error at AddSecretPattern with pattern `%s` not found", pattern)
-	}
-	return nil
-}

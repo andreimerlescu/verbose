@@ -25,12 +25,12 @@ hQEMA0n5Jk4B+eEBARAAszWqXElZ+QK/0T9F...qS38R5x4jA5YcpOCpLe9Jgn1bTz3FpHw
 		},
 		{
 			input:          "Some text with a JWT token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sometoken...\n",
-			expectedOutput: "Some text with a JWT token: [CLEANED]",
+			expectedOutput: "Some text with a JWT token: [CLEANED]\n",
 			expectError:    false,
 		},
 		{
 			input:          "DOCKER_AUTH_CONFIG={\"auths\":{\"https://index.docker.io/v1/\":{\"auth\":\"dGVzdDp0ZXN0\"}}}\n",
-			expectedOutput: "DOCKER_AUTH_CONFIG=[CLEANED]",
+			expectedOutput: "DOCKER_AUTH_CONFIG=[CLEANED]\n",
 			expectError:    false,
 		},
 	}

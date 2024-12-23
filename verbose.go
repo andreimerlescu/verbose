@@ -28,11 +28,13 @@ var Raw = toAsis
 var Rawf = toAsf
 var Expose = toAsis
 var Exposef = toAsf
-var Printf = SanitizeTo
-var Print = SanitizeTo
-var Println = SanitizeTo
-var Sprint = SanitizeTo
-var Sprintf = SanitizeTo
+var Hide = Sanitize
+var Hidef = Sanitizef
+var Printf = Sanitizef
+var Print = Sanitize
+var Println = Sanitize
+var Sprint = Sanitize
+var Sprintf = Sanitizef
 
 func Trace(v ...interface{}) {
 	vLogr.Trace(v...)

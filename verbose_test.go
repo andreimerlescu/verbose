@@ -22,7 +22,7 @@ func TestVerboseLogging(t *testing.T) {
 	Dir = tempDir
 
 	// Initialize the verbose vLogr
-	err = VerboseLogger()
+	err = NewLogger(Options{})
 	if err != nil {
 		t.Fatalf("Failed to initialize verbose vLogr: %v", err)
 	}
@@ -37,7 +37,7 @@ func TestVerboseLogging(t *testing.T) {
 
 	// Log a line containing the secret
 	logMessageWithSecret := fmt.Sprintf("This is a secret: %s", secret)
-	Printf("message with secret = " + logMessageWithSecret)
+	Printf("message with secret = %s", logMessageWithSecret)
 
 	// Read the log file
 	logFilePath := filepath.Join(tempDir, "verbose.log")

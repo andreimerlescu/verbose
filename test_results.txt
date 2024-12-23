@@ -1,0 +1,173 @@
+goos: linux
+goarch: amd64
+pkg: github.com/andreimerlescu/verbose
+cpu: Intel(R) Xeon(R) W-3245 CPU @ 3.20GHz
+BenchmarkSanitize
+BenchmarkSanitize/sanitizeInput/0Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/0Bytes/5SecretBytes-16         	582762524	         1.954 ns/op
+BenchmarkSanitize/sanitizeInput/0Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/0Bytes/10SecretBytes-16        	596561656	         1.922 ns/op
+BenchmarkSanitize/sanitizeInput/0Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/0Bytes/20SecretBytes-16        	627814071	         1.941 ns/op
+BenchmarkSanitize/sanitizeInput/0Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/0Bytes/40SecretBytes-16        	626601577	         1.947 ns/op
+BenchmarkSanitize/sanitizeInput/0Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/0Bytes/80SecretBytes-16        	608129449	         1.951 ns/op
+BenchmarkSanitize/sanitizeInput/0Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/0Bytes/160SecretBytes-16       	604612058	         1.911 ns/op
+BenchmarkSanitize/sanitizeInput/0Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/0Bytes/420SecretBytes-16       	627922620	         1.900 ns/op
+BenchmarkSanitize/sanitizeInput/10Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/10Bytes/5SecretBytes-16        	     181	   6089080 ns/op
+BenchmarkSanitize/sanitizeInput/10Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/10Bytes/10SecretBytes-16       	     193	   6135593 ns/op
+BenchmarkSanitize/sanitizeInput/10Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/10Bytes/20SecretBytes-16       	     178	   6242652 ns/op
+BenchmarkSanitize/sanitizeInput/10Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/10Bytes/40SecretBytes-16       	     207	   5991901 ns/op
+BenchmarkSanitize/sanitizeInput/10Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/10Bytes/80SecretBytes-16       	     193	   6507373 ns/op
+BenchmarkSanitize/sanitizeInput/10Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/10Bytes/160SecretBytes-16      	     186	   6143774 ns/op
+BenchmarkSanitize/sanitizeInput/10Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/10Bytes/420SecretBytes-16      	     189	   6211345 ns/op
+BenchmarkSanitize/sanitizeInput/20Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/20Bytes/5SecretBytes-16        	     192	   6585777 ns/op
+BenchmarkSanitize/sanitizeInput/20Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/20Bytes/10SecretBytes-16       	     190	   6082923 ns/op
+BenchmarkSanitize/sanitizeInput/20Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/20Bytes/20SecretBytes-16       	     181	   6536782 ns/op
+BenchmarkSanitize/sanitizeInput/20Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/20Bytes/40SecretBytes-16       	     193	   6821458 ns/op
+BenchmarkSanitize/sanitizeInput/20Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/20Bytes/80SecretBytes-16       	     166	   6271326 ns/op
+BenchmarkSanitize/sanitizeInput/20Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/20Bytes/160SecretBytes-16      	     169	   6927724 ns/op
+BenchmarkSanitize/sanitizeInput/20Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/20Bytes/420SecretBytes-16      	     168	   6293251 ns/op
+BenchmarkSanitize/sanitizeInput/40Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/40Bytes/5SecretBytes-16        	     160	   7034725 ns/op
+BenchmarkSanitize/sanitizeInput/40Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/40Bytes/10SecretBytes-16       	     170	   6957711 ns/op
+BenchmarkSanitize/sanitizeInput/40Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/40Bytes/20SecretBytes-16       	     157	   7153042 ns/op
+BenchmarkSanitize/sanitizeInput/40Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/40Bytes/40SecretBytes-16       	     163	   7409340 ns/op
+BenchmarkSanitize/sanitizeInput/40Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/40Bytes/80SecretBytes-16       	     169	   7390736 ns/op
+BenchmarkSanitize/sanitizeInput/40Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/40Bytes/160SecretBytes-16      	     166	   7347861 ns/op
+BenchmarkSanitize/sanitizeInput/40Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/40Bytes/420SecretBytes-16      	     163	   7056276 ns/op
+BenchmarkSanitize/sanitizeInput/80Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/80Bytes/5SecretBytes-16        	     156	   7782057 ns/op
+BenchmarkSanitize/sanitizeInput/80Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/80Bytes/10SecretBytes-16       	     156	   7919496 ns/op
+BenchmarkSanitize/sanitizeInput/80Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/80Bytes/20SecretBytes-16       	     162	   7339228 ns/op
+BenchmarkSanitize/sanitizeInput/80Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/80Bytes/40SecretBytes-16       	     156	   7561950 ns/op
+BenchmarkSanitize/sanitizeInput/80Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/80Bytes/80SecretBytes-16       	     166	   7149811 ns/op
+BenchmarkSanitize/sanitizeInput/80Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/80Bytes/160SecretBytes-16      	     148	   7865858 ns/op
+BenchmarkSanitize/sanitizeInput/80Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/80Bytes/420SecretBytes-16      	     151	   7061549 ns/op
+BenchmarkSanitize/sanitizeInput/160Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/160Bytes/5SecretBytes-16       	     150	   8431903 ns/op
+BenchmarkSanitize/sanitizeInput/160Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/160Bytes/10SecretBytes-16      	     147	   8167213 ns/op
+BenchmarkSanitize/sanitizeInput/160Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/160Bytes/20SecretBytes-16      	     144	   8103990 ns/op
+BenchmarkSanitize/sanitizeInput/160Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/160Bytes/40SecretBytes-16      	     140	   9260224 ns/op
+BenchmarkSanitize/sanitizeInput/160Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/160Bytes/80SecretBytes-16      	     136	   8353193 ns/op
+BenchmarkSanitize/sanitizeInput/160Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/160Bytes/160SecretBytes-16     	     141	   8954513 ns/op
+BenchmarkSanitize/sanitizeInput/160Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/160Bytes/420SecretBytes-16     	     142	   8523832 ns/op
+BenchmarkSanitize/sanitizeInput/320Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/320Bytes/5SecretBytes-16       	     100	  10335407 ns/op
+BenchmarkSanitize/sanitizeInput/320Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/320Bytes/10SecretBytes-16      	     120	  10352216 ns/op
+BenchmarkSanitize/sanitizeInput/320Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/320Bytes/20SecretBytes-16      	     100	  10550266 ns/op
+BenchmarkSanitize/sanitizeInput/320Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/320Bytes/40SecretBytes-16      	     112	  10598157 ns/op
+BenchmarkSanitize/sanitizeInput/320Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/320Bytes/80SecretBytes-16      	     100	  10449754 ns/op
+BenchmarkSanitize/sanitizeInput/320Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/320Bytes/160SecretBytes-16     	     108	  10713263 ns/op
+BenchmarkSanitize/sanitizeInput/320Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/320Bytes/420SecretBytes-16     	     118	   9995042 ns/op
+BenchmarkSanitize/sanitizeInput/640Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/640Bytes/5SecretBytes-16       	      87	  14483947 ns/op
+BenchmarkSanitize/sanitizeInput/640Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/640Bytes/10SecretBytes-16      	      91	  15550917 ns/op
+BenchmarkSanitize/sanitizeInput/640Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/640Bytes/20SecretBytes-16      	      76	  15174290 ns/op
+BenchmarkSanitize/sanitizeInput/640Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/640Bytes/40SecretBytes-16      	      67	  15178422 ns/op
+BenchmarkSanitize/sanitizeInput/640Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/640Bytes/80SecretBytes-16      	      78	  15311273 ns/op
+BenchmarkSanitize/sanitizeInput/640Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/640Bytes/160SecretBytes-16     	      90	  15361315 ns/op
+BenchmarkSanitize/sanitizeInput/640Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/640Bytes/420SecretBytes-16     	      78	  15294193 ns/op
+BenchmarkSanitize/sanitizeInput/1280Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/1280Bytes/5SecretBytes-16      	      50	  24986288 ns/op
+BenchmarkSanitize/sanitizeInput/1280Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/1280Bytes/10SecretBytes-16     	      48	  25746989 ns/op
+BenchmarkSanitize/sanitizeInput/1280Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/1280Bytes/20SecretBytes-16     	      46	  24867820 ns/op
+BenchmarkSanitize/sanitizeInput/1280Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/1280Bytes/40SecretBytes-16     	      44	  24996496 ns/op
+BenchmarkSanitize/sanitizeInput/1280Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/1280Bytes/80SecretBytes-16     	      45	  24605906 ns/op
+BenchmarkSanitize/sanitizeInput/1280Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/1280Bytes/160SecretBytes-16    	      50	  24147918 ns/op
+BenchmarkSanitize/sanitizeInput/1280Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/1280Bytes/420SecretBytes-16    	      50	  26538858 ns/op
+BenchmarkSanitize/sanitizeInput/2560Bytes/5SecretBytes
+BenchmarkSanitize/sanitizeInput/2560Bytes/5SecretBytes-16      	      27	  42707253 ns/op
+BenchmarkSanitize/sanitizeInput/2560Bytes/10SecretBytes
+BenchmarkSanitize/sanitizeInput/2560Bytes/10SecretBytes-16     	      27	  45846902 ns/op
+BenchmarkSanitize/sanitizeInput/2560Bytes/20SecretBytes
+BenchmarkSanitize/sanitizeInput/2560Bytes/20SecretBytes-16     	      24	  43332667 ns/op
+BenchmarkSanitize/sanitizeInput/2560Bytes/40SecretBytes
+BenchmarkSanitize/sanitizeInput/2560Bytes/40SecretBytes-16     	      27	  42499150 ns/op
+BenchmarkSanitize/sanitizeInput/2560Bytes/80SecretBytes
+BenchmarkSanitize/sanitizeInput/2560Bytes/80SecretBytes-16     	      25	  44482453 ns/op
+BenchmarkSanitize/sanitizeInput/2560Bytes/160SecretBytes
+BenchmarkSanitize/sanitizeInput/2560Bytes/160SecretBytes-16    	      26	  42861900 ns/op
+BenchmarkSanitize/sanitizeInput/2560Bytes/420SecretBytes
+BenchmarkSanitize/sanitizeInput/2560Bytes/420SecretBytes-16    	      28	  42700957 ns/op
+BenchmarkSanitizeNoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/0Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/0Bytes/NoSecrets-16   	613545610	         1.820 ns/op
+BenchmarkSanitizeNoSecrets/sanitizeInput/10Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/10Bytes/NoSecrets-16  	     144	   6995991 ns/op
+BenchmarkSanitizeNoSecrets/sanitizeInput/20Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/20Bytes/NoSecrets-16  	     164	   7434911 ns/op
+BenchmarkSanitizeNoSecrets/sanitizeInput/40Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/40Bytes/NoSecrets-16  	     151	   7373359 ns/op
+BenchmarkSanitizeNoSecrets/sanitizeInput/80Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/80Bytes/NoSecrets-16  	     138	   7527478 ns/op
+BenchmarkSanitizeNoSecrets/sanitizeInput/160Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/160Bytes/NoSecrets-16 	     136	   8627647 ns/op
+BenchmarkSanitizeNoSecrets/sanitizeInput/320Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/320Bytes/NoSecrets-16 	      98	  10718743 ns/op
+BenchmarkSanitizeNoSecrets/sanitizeInput/640Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/640Bytes/NoSecrets-16 	      67	  17324604 ns/op
+BenchmarkSanitizeNoSecrets/sanitizeInput/1280Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/1280Bytes/NoSecrets-16         	      45	  23624151 ns/op
+BenchmarkSanitizeNoSecrets/sanitizeInput/2560Bytes/NoSecrets
+BenchmarkSanitizeNoSecrets/sanitizeInput/2560Bytes/NoSecrets-16         	      27	  42915336 ns/op
+BenchmarkAddSecret
+BenchmarkAddSecret/AddSecret
+BenchmarkAddSecret/AddSecret-16                                         	 1306034	       895.4 ns/op
+BenchmarkRemoveSecret
+BenchmarkRemoveSecret/RemoveSecret
+BenchmarkRemoveSecret/RemoveSecret-16                                   	 1595004	       717.0 ns/op
+PASS
