@@ -5,6 +5,61 @@ import (
 	"testing"
 )
 
+func TestSetKeyConcurrent(t *testing.T) {
+    validKeys := []string{
+        strings.Repeat("a", 16),
+        strings.Repeat("b", 24),
+        strings.Repeat("c", 32),
+    }
+
+    var wg sync.WaitGroup
+    for i := 0; i < 100; i++ {
+        wg.Add(1)
+        go func(i int) {
+            defer wg.Done()
+            key := validKeys[i%len(validKeys)]
+            if err := SetKey(key); err != nil {
+                t.Errorf("SetKey() error = %v", err)
+            }
+        }(i)
+    }
+
+    // concurrent reads via Encrypt/Decrypt while SetKey is running
+    for i := 0; i < 100; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            data := SecureBytes("test data")
+            _, err := data.Encrypt()
+            if err != nil {
+                return // already encrypted is fine
+            }
+            _, _ = data.Decrypt()
+        }()
+    }
+
+    wg.Wait()
+}
+
+func TestSetKeyInvalidLength(t *testing.T) {
+    tests := []struct {
+        key     string
+        wantErr bool
+    }{
+        {strings.Repeat("a", 15), true},
+        {strings.Repeat("a", 16), false},
+        {strings.Repeat("a", 24), false},
+        {strings.Repeat("a", 32), false},
+        {strings.Repeat("a", 33), true},
+        {"", true},
+    }
+    for _, tt := range tests {
+        if err := SetKey(tt.key); (err != nil) != tt.wantErr {
+            t.Errorf("SetKey(%d bytes) error = %v, wantErr %v", len(tt.key), err, tt.wantErr)
+        }
+    }
+}
+
 // TestGenerateEncryptionKey tests the GenerateEncryptionKey function
 func TestGenerateEncryptionKey(t *testing.T) {
 	key := GenerateEncryptionKey(0)
