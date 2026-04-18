@@ -37,33 +37,61 @@ var Sprint = Sanitize
 var Sprintf = Sanitizef
 
 func Trace(v ...interface{}) {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	vLogr.Trace(v...)
 }
 
 func Tracef(format string, v ...interface{}) {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	vLogr.Tracef(format, v...)
 }
 
 func TraceReturn(v ...interface{}) error {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	return vLogr.TraceReturn(v...)
 }
 
 func TracefReturn(format string, v ...interface{}) error {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	return vLogr.TracefReturn(format, v...)
 }
 
 func Return(v ...interface{}) error {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	vLogr.Println(v...)
 	return fmt.Errorf("%v", v...)
 }
 
 // Returnf will log the formatted data and will return an error type
 func Returnf(format string, v ...interface{}) error {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	vLogr.Printf(format, v...)
 	return fmt.Errorf(format, v...)
 }
 
 func AsLn(args ...interface{}) {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	vLogr.Println(args...)
 }
 
@@ -90,6 +118,10 @@ func toAsis(customLogger *log.Logger, args ...interface{}) {
 
 // SanitizeTo will Println on your customLogger log.Logger using sanitizeInput and Scrub
 func SanitizeTo(customLogger *log.Logger, args ...interface{}) {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	sanitizedArgs := make([]interface{}, len(args))
 	for i, arg := range args {
 		if strArg, ok := arg.(string); ok {
@@ -103,6 +135,10 @@ func SanitizeTo(customLogger *log.Logger, args ...interface{}) {
 
 // SanitizefTo will Printf to customLogger log.Logger with sanitizeInput and Scrub
 func SanitizefTo(customLogger *log.Logger, format string, args ...interface{}) {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	format = sanitizeInput(Scrub(format))
 	sanitizedArgs := make([]interface{}, len(args))
 	for i, arg := range args {
@@ -117,6 +153,10 @@ func SanitizefTo(customLogger *log.Logger, format string, args ...interface{}) {
 
 // Errorf uses Sprintf and sanitizeInput alongside Scrub on the customLogger log.Logger and returns an errors.New of the line
 func Errorf(customLogger *log.Logger, format string, args ...interface{}) error {
+	if err := guard(); err != nil {
+        _, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+        return
+    }
 	line := fmt.Sprintf(format, args...)
 	line = sanitizeInput(Scrub(line))
 	customLogger.Println(line)
@@ -125,11 +165,18 @@ func Errorf(customLogger *log.Logger, format string, args ...interface{}) error 
 
 // SetLogger uses your vLogr for all verbose actions
 func SetLogger(newLogger *Logger) error {
-	vLogr = newLogger
 	if vLogr == nil {
 		return errors.New("vLogr not initialized")
 	}
+	vLogr = newLogger
 	return nil
+}
+
+func guard() error {
+    if vLogr == nil {
+        return errors.New("verbose: NewLogger has not been called")
+    }
+    return nil
 }
 
 // Options are passed into NewLogger to customize the verbose package
