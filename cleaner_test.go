@@ -24,6 +24,11 @@ hQEMA0n5Jk4B+eEBARAAszWqXElZ+QK/0T9F...qS38R5x4jA5YcpOCpLe9Jgn1bTz3FpHw
 			expectError:    false,
 		},
 		{
+    		input: "First JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.firsttoken\nSecond JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.secondtoken\n",
+    		expectedOutput: "First JWT: [CLEANED]\nSecond JWT: [CLEANED]\n",
+    		expectError:    false,
+		},
+		{
 			input:          "Some text with a JWT token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sometoken...\n",
 			expectedOutput: "Some text with a JWT token: [CLEANED]\n",
 			expectError:    false,
