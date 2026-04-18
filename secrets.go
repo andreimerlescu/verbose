@@ -57,18 +57,22 @@ var SecretEnvs = []string{
 	"PRIVATE_", "SECRET_", "PROTECTED", "_DSN", "DSN_", "_URI", "URI_",
 }
 
+// ImportSecrets accepts a map of SHA512 hex hashes to their original secret
+// lengths and adds each to the secrets map via AddHash. It returns the count
+// of successfully imported secrets and any errors encountered. A partial
+// import is possible — errors are joined and returned alongside the count of
+// successful imports.
 func ImportSecrets(hashes map[string]int) (imported int, err error) {
 	var errs []error
 	for hash, length := range hashes {
-		e := AddHash(hash, length)
-		if e != nil {
+		if e := AddHash(hash, length); e != nil {
 			errs = appendError(errs, e)
+			continue // do not count failures
 		}
 		imported++
 	}
 	if len(errs) > 0 {
 		err = errors.Join(errs...)
-		return
 	}
 	return
 }
