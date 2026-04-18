@@ -44,22 +44,26 @@ func GenerateEncryptionKey(tries int) SecureBytes {
 	return SecureBytes(password)
 }
 
-// encryptionKey is used for using SecureBytes.Encrypt and SecureBytes.Decrypt
-var encryptionKey = GenerateEncryptionKey(0)
+var (
+    encryptionKey    = GenerateEncryptionKey(0)
+    encryptionKeyMu  sync.RWMutex
+)
 
-// SetKey updates the encryptionKey with newKey
+func getEncryptionKey() SecureBytes {
+    encryptionKeyMu.RLock()
+    defer encryptionKeyMu.RUnlock()
+    return encryptionKey
+}
+
 func SetKey(newKey string) error {
-	l := len(newKey)
-	validKey := false
-	if l == 16 || l == 24 || l == 32 {
-		validKey = true
-	}
-	if validKey {
-		encryptionKey = SecureBytes(newKey)
-		return nil
-	} else {
-		return fmt.Errorf("invalid key length: expected 16, 24, or 32, got %d", l)
-	}
+    l := len(newKey)
+    if l != 16 && l != 24 && l != 32 {
+        return fmt.Errorf("invalid key length: expected 16, 24, or 32, got %d", l)
+    }
+    encryptionKeyMu.Lock()
+    defer encryptionKeyMu.Unlock()
+    encryptionKey = SecureBytes(newKey)
+    return nil
 }
 
 // prefix is used in determining if data is encrypted
@@ -67,7 +71,7 @@ const prefix = "ENC:"
 
 // Encrypt encrypts the SecureBytes and returns the base64 encoded string and error if any
 func (sb *SecureBytes) Encrypt() (string, error) {
-	return sb.EncryptUsingKey(encryptionKey)
+    return sb.EncryptUsingKey(getEncryptionKey())
 }
 
 // EncryptUsingKey uses a custom key for encrypting/decrypting
@@ -95,7 +99,7 @@ func (sb *SecureBytes) EncryptUsingKey(key SecureBytes) (string, error) {
 
 // Decrypt decrypts the SecureBytes if it is encrypted and returns the plain text string and error if any
 func (sb *SecureBytes) Decrypt() (string, error) {
-	return sb.DecryptUsingKey(encryptionKey)
+    return sb.DecryptUsingKey(getEncryptionKey())
 }
 
 // DecryptUsingKey uses another key for encrypting/decrypting
