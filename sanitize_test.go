@@ -53,3 +53,32 @@ func BenchmarkSanitizeNoSecrets(b *testing.B) {
 		})
 	}
 }
+
+func TestSanitizeOverlappingSecrets(t *testing.T) {
+    // reset secrets state
+    secrets = NewSecrets()
+
+    // "supersecret" contains "secret" — overlapping substrings
+    outer := SecretBytes("supersecret")
+    inner := SecretBytes("secret")
+
+    if err := AddSecret(outer, "[OUTER]"); err != nil {
+        t.Fatalf("AddSecret outer: %v", err)
+    }
+    if err := AddSecret(inner, "[INNER]"); err != nil {
+        t.Fatalf("AddSecret inner: %v", err)
+    }
+
+    input := "login supersecret end"
+    got := sanitizeInput(input)
+
+    // should not contain either raw value
+    if strings.Contains(got, "supersecret") || strings.Contains(got, "secret") {
+        t.Errorf("sanitizeInput did not redact overlapping secrets, got: %q", got)
+    }
+    // should not contain corrupt offset artifacts
+    if strings.Contains(got, "super[INNER]") {
+        t.Errorf("sanitizeInput produced corrupt output from overlap, got: %q", got)
+    }
+}
+
