@@ -6,6 +6,108 @@ import (
 	"testing"
 )
 
+// TestImportSecretsCount verifies that ImportSecrets only counts
+// successfully imported secrets and not failures.
+func TestImportSecretsCount(t *testing.T) {
+	secrets = NewSecrets()
+
+	// generate two valid SHA512 hashes
+	secret1 := SecretBytes("import-secret-one")
+	secret2 := SecretBytes("import-secret-two")
+
+	hash1, err := secret1.Sha512()
+	if err != nil {
+		t.Fatalf("Sha512() error = %v", err)
+	}
+	hash2, err := secret2.Sha512()
+	if err != nil {
+		t.Fatalf("Sha512() error = %v", err)
+	}
+
+	tests := []struct {
+		name          string
+		hashes        map[string]int
+		wantImported  int
+		wantErr       bool
+	}{
+		{
+			name: "all valid",
+			hashes: map[string]int{
+				hash1: len("import-secret-one"),
+				hash2: len("import-secret-two"),
+			},
+			wantImported: 2,
+			wantErr:      false,
+		},
+		{
+			name: "all invalid — hash too short",
+			hashes: map[string]int{
+				"tooshort": 10,
+			},
+			wantImported: 0,
+			wantErr:      true,
+		},
+		{
+			name: "all invalid — length below SecretMinLength",
+			hashes: map[string]int{
+				strings.Repeat("a", 128): 1,
+			},
+			wantImported: 0,
+			wantErr:      true,
+		},
+		{
+			name: "mixed valid and invalid",
+			hashes: map[string]int{
+				hash1:    len("import-secret-one"),
+				"bad":    10, // invalid hash
+			},
+			wantImported: 1,
+			wantErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			secrets = NewSecrets() // reset between cases
+			got, err := ImportSecrets(tt.hashes)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ImportSecrets() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if got != tt.wantImported {
+				t.Errorf("ImportSecrets() imported = %d, want %d", got, tt.wantImported)
+			}
+		})
+	}
+}
+
+// TestImportSecretsPartialImport verifies that a partial import leaves
+// the successfully imported secrets accessible and failed ones absent.
+func TestImportSecretsPartialImport(t *testing.T) {
+	secrets = NewSecrets()
+
+	secret := SecretBytes("partial-import-secret")
+	hash, err := secret.Sha512()
+	if err != nil {
+		t.Fatalf("Sha512() error = %v", err)
+	}
+
+	imported, err := ImportSecrets(map[string]int{
+		hash:      len("partial-import-secret"),
+		"badhash": 10,
+	})
+	if err == nil {
+		t.Error("ImportSecrets() expected error for bad hash, got nil")
+	}
+	if imported != 1 {
+		t.Errorf("ImportSecrets() imported = %d, want 1", imported)
+	}
+
+	// valid hash should still be accessible
+	if !IsSecret(hash) {
+		t.Error("valid hash should be present in secrets after partial import")
+	}
+}
+
 // TestCommitHashConcurrent verifies that concurrent calls to commitHash
 // do not produce data races or inconsistent state in the secrets maps.
 func TestCommitHashConcurrent(t *testing.T) {
