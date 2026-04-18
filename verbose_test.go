@@ -10,6 +10,31 @@ import (
 	"testing"
 )
 
+func TestGuard(t *testing.T) {
+    // save and nil out vLogr
+    original := vLogr
+    vLogr = nil
+    defer func() { vLogr = original }()
+
+    // functions that return error should return it cleanly
+    if err := TraceReturn("test"); err == nil {
+        t.Error("expected error from TraceReturn with nil vLogr")
+    }
+    if err := Return("test"); err == nil {
+        t.Error("expected error from Return with nil vLogr")
+    }
+
+    // SetLogger should reject nil
+    if err := SetLogger(nil); err == nil {
+        t.Error("expected error from SetLogger(nil)")
+    }
+
+    // vLogr should still be nil after rejected SetLogger
+    if vLogr != nil {
+        t.Error("vLogr should still be nil after SetLogger(nil) was rejected")
+    }
+}
+
 func TestVerboseLogging(t *testing.T) {
 	// Create a temporary directory for logging
 	tempDir, err := os.MkdirTemp("", "verbose_test")
