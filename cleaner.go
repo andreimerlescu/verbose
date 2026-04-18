@@ -88,40 +88,69 @@ var keyTypes = []KeyType{
 	{"-----BEGIN SIGNATURE-----", "-----END SIGNATURE-----"},
 }
 
-// Scrub removes secrets from an input string using a header/footer substring approach
+// keyTypesMu protects keyTypes from concurrent reads and writes.
+var keyTypesMu sync.RWMutex
+
+// AddKeyType appends a custom KeyType to the list of patterns that Scrub
+// will clean from log output. It is safe for concurrent use.
+func AddKeyType(kt KeyType) {
+	keyTypesMu.Lock()
+	defer keyTypesMu.Unlock()
+	keyTypes = append(keyTypes, kt)
+}
+
+// RemoveKeyType removes the first KeyType whose Opening matches kt.Opening
+// from the list of patterns. It is safe for concurrent use.
+func RemoveKeyType(kt KeyType) {
+	keyTypesMu.Lock()
+	defer keyTypesMu.Unlock()
+	for i, k := range keyTypes {
+		if k.Opening == kt.Opening {
+			keyTypes = append(keyTypes[:i], keyTypes[i+1:]...)
+			return
+		}
+	}
+}
+
+// Scrub removes secrets from an input string using a header/footer substring
+// approach defined by keyTypes. It is safe for concurrent use.
 func Scrub(input string) (output string) {
-    input = Rinse(input)
-    for _, keyType := range keyTypes {
-        for {
-            start := strings.Index(input, keyType.Opening)
-            if start == -1 {
-                break
-            }
-            var end int
-            if keyType.Closing == "" {
-                end = strings.Index(input[start:], "\n")
-                if end == -1 {
-                    end = len(input)
-                } else {
-                    end += start
-                }
-            } else {
-                end = strings.Index(input[start:], keyType.Closing)
-                if end == -1 {
-                    break
-                }
-                end += start + len(keyType.Closing)
-            }
-            if end > start {
-                input = input[:start] + "[CLEANED]" + input[end:]
-            } else {
-                break
-            }
-        }
-    }
-    output = strings.Clone(input)
-    input = ""
-    return
+	input = Rinse(input)
+	keyTypesMu.RLock()
+	localKeyTypes := make([]KeyType, len(keyTypes))
+	copy(localKeyTypes, keyTypes)
+	keyTypesMu.RUnlock()
+	for _, keyType := range localKeyTypes {
+		for {
+			start := strings.Index(input, keyType.Opening)
+			if start == -1 {
+				break
+			}
+			var end int
+			if keyType.Closing == "" {
+				end = strings.Index(input[start:], "\n")
+				if end == -1 {
+					end = len(input)
+				} else {
+					end += start
+				}
+			} else {
+				end = strings.Index(input[start:], keyType.Closing)
+				if end == -1 {
+					break
+				}
+				end += start + len(keyType.Closing)
+			}
+			if end > start {
+				input = input[:start] + "[CLEANED]" + input[end:]
+			} else {
+				break
+			}
+		}
+	}
+	output = strings.Clone(input)
+	input = ""
+	return
 }
 
 // Rinse runs the TruncateDockerBuild and TruncateYumUpdate on the input string
