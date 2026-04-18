@@ -45,16 +45,68 @@ var secrets = NewSecrets()
 
 var SecretMinLength = 5
 
-// SecretEnvs defines a list of common ENV names that usually contain secrets, since this program will inherit
-// all user.User os.Environ, Secrets are expected to be there, and the vLogr should never expose those secrets due
-// to this application printing to logs anything in the os.Environ response or the data.Environ map of os.Environ
-var SecretEnvs = []string{
-	"KEY", "TOKEN", "PASSW", "CI_", "AWS_", "OP_", "DO_PAT", "OKTA", "KUBE", "WUZAH",
-	"CLOUDFLARE_", "CLOUD_FLARE_", "LASTPASS_", "LAST_PASS_", "KEEPER_", "VAULT",
-	"INTERCOM", "RABBITMQ", "MAILGUN", "TWILIO", "ZENDESK", "SENDGRID", "AUTH0",
-	"JENKINS", "GITLAB", "GITHUB", "GH", "GITEA", "DATADOG", "SENTRY", "PAGERDUTY",
-	"ROLLBAR", "SLACK", "REDIS", "SQL", "ROOT", "MONGO", "CERT", "_PEM", "_PK", "PK_",
-	"PRIVATE_", "SECRET_", "PROTECTED", "_DSN", "DSN_", "_URI", "URI_",
+// secretEnvs holds the list of environment variable name substrings that
+// are considered sensitive. Access is protected by secretEnvsMu.
+var (
+	secretEnvs = []string{
+		"KEY", "TOKEN", "PASSW", "CI_", "AWS_", "OP_", "DO_PAT", "OKTA", "KUBE", "WUZAH",
+		"CLOUDFLARE_", "CLOUD_FLARE_", "LASTPASS_", "LAST_PASS_", "KEEPER_", "VAULT",
+		"INTERCOM", "RABBITMQ", "MAILGUN", "TWILIO", "ZENDESK", "SENDGRID", "AUTH0",
+		"JENKINS", "GITLAB", "GITHUB", "GH", "GITEA", "DATADOG", "SENTRY", "PAGERDUTY",
+		"ROLLBAR", "SLACK", "REDIS", "SQL", "ROOT", "MONGO", "CERT", "_PEM", "_PK", "PK_",
+		"PRIVATE_", "SECRET_", "PROTECTED", "_DSN", "DSN_", "_URI", "URI_",
+	}
+	secretEnvsMu sync.RWMutex
+)
+
+// SecretEnvs returns a copy of the current sensitive environment variable
+// name substrings. Callers may not modify the returned slice directly —
+// use AddSecretEnv or RemoveSecretEnv to mutate the list.
+func SecretEnvs() []string {
+	secretEnvsMu.RLock()
+	defer secretEnvsMu.RUnlock()
+	cp := make([]string, len(secretEnvs))
+	copy(cp, secretEnvs)
+	return cp
+}
+
+// AddSecretEnv appends env to the list of sensitive environment variable
+// name substrings if it is not already present. It is safe for concurrent use.
+func AddSecretEnv(env string) {
+	secretEnvsMu.Lock()
+	defer secretEnvsMu.Unlock()
+	for _, e := range secretEnvs {
+		if e == env {
+			return
+		}
+	}
+	secretEnvs = append(secretEnvs, env)
+}
+
+// RemoveSecretEnv removes env from the list of sensitive environment variable
+// name substrings if present. It is safe for concurrent use.
+func RemoveSecretEnv(env string) {
+	secretEnvsMu.Lock()
+	defer secretEnvsMu.Unlock()
+	for i, e := range secretEnvs {
+		if e == env {
+			secretEnvs = append(secretEnvs[:i], secretEnvs[i+1:]...)
+			return
+		}
+	}
+}
+
+// IsSecretEnv reports whether env contains any of the sensitive environment
+// variable name substrings. It is safe for concurrent use.
+func IsSecretEnv(env string) bool {
+	secretEnvsMu.RLock()
+	defer secretEnvsMu.RUnlock()
+	for _, e := range secretEnvs {
+		if strings.Contains(env, e) {
+			return true
+		}
+	}
+	return false
 }
 
 // ImportSecrets accepts a map of SHA512 hex hashes to their original secret
