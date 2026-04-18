@@ -6,6 +6,120 @@ import (
 	"testing"
 )
 
+// TestCommitHashConcurrent verifies that concurrent calls to commitHash
+// do not produce data races or inconsistent state in the secrets maps.
+func TestCommitHashConcurrent(t *testing.T) {
+	// reset secrets state for a clean test
+	secrets = NewSecrets()
+
+	var wg sync.WaitGroup
+	hashes := make([]string, 20)
+
+	// generate 20 valid SHA512 hex strings and commit them concurrently
+	for i := 0; i < 20; i++ {
+		secret := SecretBytes(fmt.Sprintf("concurrent-secret-%d", i))
+		hash, err := secret.Sha512()
+		if err != nil {
+			t.Fatalf("Sha512() error = %v", err)
+		}
+		hashes[i] = hash
+		wg.Add(1)
+		go func(h string, idx int) {
+			defer wg.Done()
+			if err := commitHash(h, fmt.Sprintf("[REDACTED_%d]", idx), idx+SecretMinLength); err != nil {
+				t.Errorf("commitHash() error = %v", err)
+			}
+		}(hash, i)
+	}
+	wg.Wait()
+
+	// verify all hashes were committed correctly with no gaps
+	for i, hash := range hashes {
+		secrets.hmu.RLock()
+		replaceWith, exists := secrets.Hashes[hash]
+		secrets.hmu.RUnlock()
+		if !exists {
+			t.Errorf("hash %d not found in secrets.Hashes after concurrent commitHash", i)
+		}
+		expected := fmt.Sprintf("[REDACTED_%d]", i)
+		if replaceWith != expected {
+			t.Errorf("hash %d replaceWith = %q, want %q", i, replaceWith, expected)
+		}
+
+		secrets.lmu.RLock()
+		length, lexists := secrets.Lengths[hash]
+		secrets.lmu.RUnlock()
+		if !lexists {
+			t.Errorf("hash %d not found in secrets.Lengths after concurrent commitHash", i)
+		}
+		if length != i+SecretMinLength {
+			t.Errorf("hash %d length = %d, want %d", i, length, i+SecretMinLength)
+		}
+	}
+
+	// verify min/max are consistent
+	secrets.mmu.Lock()
+	gotMin := secrets.min
+	gotMax := secrets.max
+	secrets.mmu.Unlock()
+
+	if gotMin != SecretMinLength {
+		t.Errorf("secrets.min = %d, want %d", gotMin, SecretMinLength)
+	}
+	if gotMax != 19+SecretMinLength {
+		t.Errorf("secrets.max = %d, want %d", gotMax, 19+SecretMinLength)
+	}
+}
+
+// TestCommitHashInvalidInputs verifies that commitHash correctly rejects
+// invalid hash lengths and zero lengths.
+func TestCommitHashInvalidInputs(t *testing.T) {
+	tests := []struct {
+		name        string
+		hash        string
+		replaceWith string
+		length      int
+		wantErr     bool
+	}{
+		{
+			name:        "invalid hash length",
+			hash:        strings.Repeat("a", 64), // SHA256 length, not SHA512
+			replaceWith: "[REDACTED]",
+			length:      10,
+			wantErr:     true,
+		},
+		{
+			name:        "zero length",
+			hash:        strings.Repeat("a", 128),
+			replaceWith: "[REDACTED]",
+			length:      0,
+			wantErr:     true,
+		},
+		{
+			name:        "empty replaceWith defaults to asterisks",
+			hash:        strings.Repeat("a", 128),
+			replaceWith: "",
+			length:      10,
+			wantErr:     false,
+		},
+		{
+			name:        "valid inputs",
+			hash:        strings.Repeat("b", 128),
+			replaceWith: "[REDACTED]",
+			length:      10,
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := commitHash(tt.hash, tt.replaceWith, tt.length)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("commitHash() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func BenchmarkAddSecret(b *testing.B) {
 	b.Run("AddSecret", func(b *testing.B) {
 		input := strings.Repeat("a", 14)
