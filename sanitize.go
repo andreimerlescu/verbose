@@ -88,6 +88,7 @@ func sanitizeInput(input string) string {
 	sort.Slice(foundSecrets, func(i, j int) bool {
 		return foundSecrets[i].start < foundSecrets[j].start
 	})
+	foundSecrets = mergeOverlapping(foundSecrets)
 	sanitized, offset := input, 0
 	for _, secret := range foundSecrets {
 		sanitized = sanitized[:secret.start+offset] + // start + offset
@@ -111,3 +112,24 @@ func Sanitizef(format string, a ...interface{}) {
 	out := sanitizeInput(in)
 	vLogr.Logger.Println(out)
 }
+
+// mergeOverlapping collapses any overlapping foundSecret ranges
+func mergeOverlapping(found []foundSecret) []foundSecret {
+    if len(found) == 0 {
+        return found
+    }
+    merged := []foundSecret{found[0]}
+    for _, curr := range found[1:] {
+        last := &merged[len(merged)-1]
+        if curr.start < last.end {
+            // overlapping — extend end if needed, keep last.replaceWith
+            if curr.end > last.end {
+                last.end = curr.end
+            }
+        } else {
+            merged = append(merged, curr)
+        }
+    }
+    return merged
+}
+
