@@ -228,11 +228,11 @@ func commitHash(hash string, replaceWith string, length int) error {
 	secrets.lmu.Unlock()
 
 	secrets.mmu.Lock()
-	if secrets.min > length {
-		secrets.min = length
+	if secrets.min == 0 || secrets.min > length {
+	    secrets.min = length
 	}
 	if secrets.max < length {
-		secrets.max = length
+	    secrets.max = length
 	}
 	secrets.mmu.Unlock()
 
