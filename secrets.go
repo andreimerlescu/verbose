@@ -207,42 +207,45 @@ func purgeHash(hash string) error {
 	return nil
 }
 
-// commitHash adds the hash to the secrets in the Hashes map
+// commitHash stores the hash and its replacement string and original length
+// into the secrets maps under a single lock acquisition per map, preventing
+// any TOCTOU race between writing and verifying the write.
+//
+// Returns an error if hash is not exactly 128 characters (SHA512 hex),
+// if length is zero, or if replaceWith is empty after defaulting.
 func commitHash(hash string, replaceWith string, length int) error {
 	if len(hash) != 128 {
-		return fmt.Errorf("error in commitHash() for length %d ; need at least %d", length, SecretMinLength)
+		return fmt.Errorf("commitHash() received invalid hash length %d; SHA512 hex must be 128 characters", len(hash))
 	}
 	if length == 0 {
-		return fmt.Errorf("error in commitHash() for length 0")
+		return fmt.Errorf("commitHash() received length of 0 for hash %s", hash)
 	}
 	if replaceWith == "" {
 		replaceWith = strings.Repeat("*", length)
 	}
 
+	// Write hash and replaceWith atomically under a single lock — no
+	// verification read needed since a map assignment cannot partially fail.
 	secrets.hmu.Lock()
 	secrets.Hashes[hash] = replaceWith
 	secrets.hmu.Unlock()
 
+	// Write length separately under its own lock.
 	secrets.lmu.Lock()
 	secrets.Lengths[hash] = length
 	secrets.lmu.Unlock()
 
+	// Update min/max under a single lock acquisition to prevent a race
+	// between reading min/max and writing them.
 	secrets.mmu.Lock()
 	if secrets.min == 0 || secrets.min > length {
-	    secrets.min = length
+		secrets.min = length
 	}
 	if secrets.max < length {
-	    secrets.max = length
+		secrets.max = length
 	}
 	secrets.mmu.Unlock()
 
-	secrets.hmu.RLock()
-	_, exists := secrets.Hashes[hash]
-	secrets.hmu.RUnlock()
-
-	if exists {
-		return nil
-	}
-
-	return fmt.Errorf("hash not committed")
+	return nil
 }
+
