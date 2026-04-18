@@ -90,30 +90,38 @@ var keyTypes = []KeyType{
 
 // Scrub removes secrets from an input string using a header/footer substring approach
 func Scrub(input string) (output string) {
-	input = Rinse(input)
-	for _, keyType := range keyTypes {
-		start := strings.Index(input, keyType.Opening)
-		end := strings.Index(input, keyType.Closing)
-		if start != -1 {
-			if keyType.Closing == "" {
-				// If there's no specific closing string, assume it's the end of the line
-				end = strings.Index(input[start:], "\n")
-				if end == -1 {
-					end = len(input) // Assume it goes till the end of the string
-				} else {
-					end += start // Adjust for the start position
-				}
-			} else if end != -1 {
-				end += len(keyType.Closing)
-			}
-			if end > start {
-				input = input[:start] + "[CLEANED]" + input[end:]
-			}
-		}
-	}
-	output = strings.Clone(input)
-	input = ""
-	return
+    input = Rinse(input)
+    for _, keyType := range keyTypes {
+        for {
+            start := strings.Index(input, keyType.Opening)
+            if start == -1 {
+                break
+            }
+            var end int
+            if keyType.Closing == "" {
+                end = strings.Index(input[start:], "\n")
+                if end == -1 {
+                    end = len(input)
+                } else {
+                    end += start
+                }
+            } else {
+                end = strings.Index(input[start:], keyType.Closing)
+                if end == -1 {
+                    break
+                }
+                end += start + len(keyType.Closing)
+            }
+            if end > start {
+                input = input[:start] + "[CLEANED]" + input[end:]
+            } else {
+                break
+            }
+        }
+    }
+    output = strings.Clone(input)
+    input = ""
+    return
 }
 
 // Rinse runs the TruncateDockerBuild and TruncateYumUpdate on the input string
