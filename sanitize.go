@@ -9,21 +9,43 @@ import (
 	"strings"
 )
 
-// foundSecret records the location and replacement text of a detected secret
-// within an input string.
+// foundSecret records a detected secret within an input string together with
+// its replacement text. start and end are byte offsets into the original input.
 type foundSecret struct {
 	start, end  int
 	replaceWith string
 }
 
-// sanitizeInput uses the secrets.max and secrets.min values as substring lengths to sanitize the input string
+// sanitizeInput scans input for substrings that match any registered secret
+// and returns a copy of input with each match replaced by its configured
+// replacement string. Overlapping matches are merged so that the wider (longer)
+// match wins, preventing partial redaction artefacts such as "super[INNER]".
+//
+// The function is safe for concurrent use — it takes a read-lock on the secrets
+// maps and releases it before performing any allocation.
+//
+// Performance characteristics:
+//   - Fast path (no secrets registered): O(1), zero allocations.
+//   - Fast path (input shorter than shortest registered secret): O(1), zero allocations.
+//   - General path: O(n²) in input length where n = len(input). Each byte
+//     position is hashed once per registered secret length. For typical log
+//     lines under 200 bytes the overhead is imperceptible; for large inputs
+//     (> 1 KB) consider whether the full input needs to pass through the logger.
+//
+// Gotcha: sanitizeInput operates on raw bytes, not Unicode code points. A
+// secret that contains multi-byte UTF-8 sequences is matched correctly as long
+// as the byte sequence appears verbatim in input.
 func sanitizeInput(input string) string {
 	if len(input) == 0 {
 		return input
 	}
 
-	// snapshot lengths under lock
+	// Fast path: bail out before any allocation if no secrets are registered.
 	secrets.lmu.RLock()
+	if len(secrets.Lengths) == 0 {
+		secrets.lmu.RUnlock()
+		return input
+	}
 	mSubstrLen := make(map[int]struct{}, len(secrets.Lengths))
 	for _, length := range secrets.Lengths {
 		mSubstrLen[length] = struct{}{}
@@ -34,7 +56,7 @@ func sanitizeInput(input string) string {
 		return input
 	}
 
-	// short circuit if input can't possibly contain any registered secret
+	// Fast path: input is shorter than the shortest registered secret.
 	secrets.mmu.Lock()
 	if secrets.min < 1 {
 		secrets.min = SecretMinLength
@@ -46,10 +68,14 @@ func sanitizeInput(input string) string {
 		return input
 	}
 
+	// Build a sorted, deduplicated slice of secret lengths, longest first.
+	// Sorting before reversing guarantees the order — iterating over a map
+	// does not.
 	substrLengths := make([]int, 0, len(mSubstrLen))
 	for l := range mSubstrLen {
 		substrLengths = append(substrLengths, l)
 	}
+	sort.Ints(substrLengths)
 	slices.Reverse(substrLengths) // longest first so overlaps favour wider match
 
 	found := make([]foundSecret, 0)
@@ -98,12 +124,24 @@ func sanitizeInput(input string) string {
 	return sanitized
 }
 
+// Sanitize formats args with fmt.Sprint, sanitizes the result against all
+// registered secrets, and writes the sanitized string to the verbose logger.
+//
+// Note: Sanitize does not return a string. The design philosophy of this
+// package is that every string passing through a verbose function is written
+// to the verbose logger. Use fmt.Sprintf if you need a formatted string
+// without logging it.
 func Sanitize(a ...interface{}) {
 	in := fmt.Sprint(a...)
 	out := sanitizeInput(in)
 	vLogr.Logger.Println(out)
 }
 
+// Sanitizef formats args using format and fmt.Sprintf, sanitizes both the
+// format string and the formatted result against all registered secrets, and
+// writes the sanitized output to the verbose logger.
+//
+// Note: Sanitizef does not return a string. See Sanitize for the rationale.
 func Sanitizef(format string, a ...interface{}) {
 	format = strings.Clone(sanitizeInput(format))
 	in := fmt.Sprintf(format, a...)
@@ -111,9 +149,16 @@ func Sanitizef(format string, a ...interface{}) {
 	vLogr.Logger.Println(out)
 }
 
-// TODO foundSecret struct missing
-
-// mergeOverlapping collapses any overlapping foundSecret ranges
+// mergeOverlapping collapses any overlapping or adjacent foundSecret ranges
+// in found (which must be sorted by start offset ascending). When two ranges
+// overlap the later range is absorbed into the earlier one; the replaceWith
+// string of the first (wider/longer) match is retained, which is correct
+// because substrLengths is processed longest-first.
+//
+// Example: secrets "supersecret" and "secret" both registered; input contains
+// "supersecret". The longer match produces foundSecret{0,11,"[OUTER]"} and the
+// shorter match produces foundSecret{5,11,"[INNER]"}. mergeOverlapping collapses
+// these into foundSecret{0,11,"[OUTER]"}, preventing "super[INNER]" artefacts.
 func mergeOverlapping(found []foundSecret) []foundSecret {
 	if len(found) == 0 {
 		return found

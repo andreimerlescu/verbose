@@ -37,11 +37,11 @@ func TestSecretEnvsConcurrent(t *testing.T) {
 // TestAddSecretEnvNoDuplicates verifies that AddSecretEnv does not add
 // duplicate entries to the secretEnvs slice.
 func TestAddSecretEnvNoDuplicates(t *testing.T) {
-	initial := len(SecretEnvs())
+	initial := len(SecretEnvs)
 	AddSecretEnv("MYTOKEN")
 	AddSecretEnv("MYTOKEN")
 	AddSecretEnv("MYTOKEN")
-	if got := len(SecretEnvs()); got != initial+1 {
+	if got := len(SecretEnvs); got != initial+1 {
 		t.Errorf("SecretEnvs() len = %d, want %d after duplicate adds", got, initial+1)
 	}
 	RemoveSecretEnv("MYTOKEN")

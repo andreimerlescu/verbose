@@ -136,14 +136,14 @@ Measured on Apple M3 Ultra. All tests run with `-race`.
 | Input size | Secrets registered | ns/op | B/op | allocs/op |
 |------------|-------------------|-------|------|-----------|
 | 0 bytes | any | 1.4 | 0 | 0 |
-| 10 bytes | any | 11,115 | 19,608 | 12 |
-| 80 bytes | any | 71,877 | 99,112 | 689 |
-| 640 bytes | any | 1,559,420 | 2,219,626 | 16,382 |
-| 2560 bytes | any | 9,296,494 | 13,063,798 | 85,502 |
+| 10 bytes | any | 11,394 | 19,608 | 12 |
+| 80 bytes | any | 72,649 | 99,112 | 689 |
+| 640 bytes | any | 1,580,327 | 2,219,627 | 16,382 |
+| 2560 bytes | any | 9,131,123 | 13,063,797 | 85,502 |
 
 The algorithm is O(n²) in input length — intentionally, because every substring
 must be checked against the secret registry. For typical log lines under 200 bytes
-the overhead is imperceptible. `AddSecret` costs 315 ns. `RemoveSecret` costs 243 ns.
+the overhead is imperceptible. `AddSecret` costs 315 ns. `RemoveSecret` costs 247 ns.
 
 Run the benchmarks yourself:
 

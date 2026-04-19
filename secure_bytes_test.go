@@ -6,6 +6,17 @@ import (
 	"testing"
 )
 
+// TestSetKeyConcurrent verifies that concurrent calls to SetKey do not
+// introduce data races on the encryptionKey variable. It does NOT assert that
+// Encrypt/Decrypt round-trips succeed when SetKey is called concurrently with
+// them, because that scenario is explicitly outside the supported usage of
+// SetKey: the function is intended to be called once at program startup before
+// any encryption or decryption takes place.
+//
+// What this test guarantees:
+//   - No panic occurs when SetKey, EncryptUsingKey, and DecryptUsingKey are
+//     called from multiple goroutines simultaneously.
+//   - The race detector reports no data races.
 func TestSetKeyConcurrent(t *testing.T) {
 	validKeys := []string{
 		strings.Repeat("a", 16),
@@ -14,6 +25,7 @@ func TestSetKeyConcurrent(t *testing.T) {
 	}
 
 	var wg sync.WaitGroup
+
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func(i int) {
@@ -25,17 +37,25 @@ func TestSetKeyConcurrent(t *testing.T) {
 		}(i)
 	}
 
-	// concurrent reads via Encrypt/Decrypt while SetKey is running
+	// Use EncryptUsingKey/DecryptUsingKey with a fixed local key so the
+	// round-trip is fully isolated from the concurrent SetKey calls above.
+	// Using the package-level Encrypt/Decrypt here would produce legitimate
+	// AES-GCM authentication failures whenever SetKey changes the global key
+	// between the encrypt and decrypt calls — that is correct behaviour, not
+	// a bug, and is not what this test is measuring.
+	fixedKey := SecureBytes(strings.Repeat("z", 32))
 	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			data := SecureBytes("test data")
-			_, err := data.Encrypt()
-			if err != nil {
-				return // already encrypted is fine
+			if _, err := data.EncryptUsingKey(fixedKey); err != nil {
+				t.Errorf("EncryptUsingKey() error = %v", err)
+				return
 			}
-			_, _ = data.Decrypt()
+			if _, err := data.DecryptUsingKey(fixedKey); err != nil {
+				t.Errorf("DecryptUsingKey() error = %v", err)
+			}
 		}()
 	}
 
@@ -61,7 +81,8 @@ func TestSetKeyInvalidLength(t *testing.T) {
 	}
 }
 
-// TestGenerateEncryptionKey tests the GenerateEncryptionKey function
+// TestGenerateEncryptionKey verifies that GenerateEncryptionKey returns a
+// non-empty key of exactly keyLength bytes.
 func TestGenerateEncryptionKey(t *testing.T) {
 	key := GenerateEncryptionKey(0)
 	if len(key) == 0 {
@@ -72,7 +93,8 @@ func TestGenerateEncryptionKey(t *testing.T) {
 	}
 }
 
-// TestEncrypt tests the Encrypt method of SecureBytes
+// TestEncrypt verifies that Encrypt produces non-empty ciphertext that differs
+// from the original plaintext and marks the value as encrypted.
 func TestEncrypt(t *testing.T) {
 	originalMessage := "Test data"
 	originalData := SecureBytes(originalMessage)
@@ -92,7 +114,8 @@ func TestEncrypt(t *testing.T) {
 	}
 }
 
-// TestDecrypt tests the Decrypt method of SecureBytes
+// TestDecrypt verifies that a round-trip Encrypt → Decrypt recovers the
+// original plaintext and clears the encrypted flag.
 func TestDecrypt(t *testing.T) {
 	originalData := SecureBytes("Test data")
 	_, err := originalData.Encrypt()
@@ -112,7 +135,8 @@ func TestDecrypt(t *testing.T) {
 	}
 }
 
-// TestIsEncrypted tests the IsEncrypted method of SecureBytes
+// TestIsEncrypted verifies that IsEncrypted reflects the correct state before
+// and after encryption.
 func TestIsEncrypted(t *testing.T) {
 	originalData := SecureBytes("Test data")
 	if originalData.IsEncrypted() {
@@ -128,7 +152,8 @@ func TestIsEncrypted(t *testing.T) {
 	}
 }
 
-// TestEncryptAlreadyEncrypted tests that attempting to encrypt already encrypted data returns an error
+// TestEncryptAlreadyEncrypted verifies that calling Encrypt on already-
+// encrypted data returns an error rather than double-encrypting.
 func TestEncryptAlreadyEncrypted(t *testing.T) {
 	originalData := SecureBytes("Test data")
 	_, err := originalData.Encrypt()
@@ -142,7 +167,8 @@ func TestEncryptAlreadyEncrypted(t *testing.T) {
 	}
 }
 
-// TestDecryptNotEncrypted tests that attempting to decrypt non-encrypted data returns the original string
+// TestDecryptNotEncrypted verifies that calling Decrypt on plaintext returns
+// the original string without error and leaves IsEncrypted false.
 func TestDecryptNotEncrypted(t *testing.T) {
 	originalData := SecureBytes("Test data")
 	decryptedData, err := originalData.Decrypt()
