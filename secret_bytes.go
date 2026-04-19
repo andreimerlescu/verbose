@@ -26,10 +26,7 @@ func (sb SecretBytes) Sha512() (string, error) {
 		return "", nil
 	}
 	if len(sb) < SecretMinLength {
-		return "", fmt.Errorf("%s", "verbose.SecretMinLength %d requires len(SecretBytes) to be at "+
-			"least %d bytes to be eligible for secrets protection. Adjust this value to include "+
-			"shorter secrets. The lower the value, the longer verbose.Printf and verbose.Println "+
-			"will take to safely remove all secrets")
+		return "", fmt.Errorf("verbose.SecretMinLength %d requires len(SecretBytes) to be at least %d bytes to be eligible for secrets protection. Adjust this value to include shorter secrets. The lower the value, the longer verbose.Printf and verbose.Println will take to safely remove all secrets", SecretMinLength, SecretMinLength)
 	}
 	hash := sha512.New()
 	bytesWritten, writeErr := hash.Write(sb)

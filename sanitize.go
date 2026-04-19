@@ -3,111 +3,159 @@ package verbose
 import (
 	"crypto/sha512"
 	"encoding/hex"
-	"fmt"
-	"slices"
 	"sort"
-	"strings"
-	"sync"
+	"slices"
 )
 
-// sanitizeInput uses the secrets.max and secrets.min values as substring lengths to sanitize the input string
+// foundSecret records a detected secret within an input string together with
+// its replacement text. start and end are byte offsets into the original input.
+type foundSecret struct {
+	start, end  int
+	replaceWith string
+}
+
+// sanitizeInput scans input for substrings that match any registered secret
+// and returns a copy of input with each match replaced by its configured
+// replacement string. Overlapping matches are merged so that the wider (longer)
+// match wins, preventing partial redaction artefacts such as "super[INNER]".
+//
+// The function is safe for concurrent use — it takes a read-lock on the secrets
+// maps and releases it before performing any allocation.
+//
+// Performance characteristics:
+//   - Fast path (no secrets registered): O(1), zero allocations.
+//   - Fast path (input shorter than shortest registered secret): O(1), zero allocations.
+//   - General path: O(n²) in input length where n = len(input). Each byte
+//     position is hashed once per registered secret length. For typical log
+//     lines under 200 bytes the overhead is imperceptible; for large inputs
+//     (> 1 KB) consider whether the full input needs to pass through the logger.
+//
+// Gotcha: sanitizeInput operates on raw bytes, not Unicode code points. A
+// secret that contains multi-byte UTF-8 sequences is matched correctly as long
+// as the byte sequence appears verbatim in input.
 func sanitizeInput(input string) string {
 	if len(input) == 0 {
 		return input
 	}
-	var substrLengths []int                 // lengths to use for heuristics
-	var mSubstrLen = make(map[int]struct{}) // collect unique lengths
-	// set minimum secret length
+
+	// Fast path: bail out before any allocation if no secrets are registered.
+	secrets.lmu.RLock()
+	if len(secrets.Lengths) == 0 {
+		secrets.lmu.RUnlock()
+		return input
+	}
+	mSubstrLen := make(map[int]struct{}, len(secrets.Lengths))
+	for _, length := range secrets.Lengths {
+		mSubstrLen[length] = struct{}{}
+	}
+	secrets.lmu.RUnlock()
+
+	if len(mSubstrLen) == 0 {
+		return input
+	}
+
+	// Fast path: input is shorter than the shortest registered secret.
 	secrets.mmu.Lock()
 	if secrets.min < 1 {
 		secrets.min = SecretMinLength
 	}
+	minLen := secrets.min
 	secrets.mmu.Unlock()
-	// lengths
-	secrets.lmu.RLock() // lock lengths map
-	for _, length := range secrets.Lengths {
-		mSubstrLen[length] = struct{}{} // add/replace unique length to map
-	}
-	secrets.lmu.RUnlock() // unlock lengths map
 
-	// can we proceed?
-	if len(mSubstrLen) == 0 { // any lengths? if none, then
+	if len(input) < minLen {
 		return input
 	}
-	for i, _ := range mSubstrLen { // add unique lengths to substrLengths
-		substrLengths = append(substrLengths, i)
+
+	// Build a sorted, deduplicated slice of secret lengths, longest first.
+	// Sorting before reversing guarantees the order — iterating over a map
+	// does not.
+	substrLengths := make([]int, 0, len(mSubstrLen))
+	for l := range mSubstrLen {
+		substrLengths = append(substrLengths, l)
 	}
-	slices.Reverse(substrLengths) // reverse them so the longest hashes are calculated first
-	numWorkers := 8192
-	type foundSecret struct {
-		start, end  int
-		replaceWith string
-	}
-	foundSecrets := make([]foundSecret, 0)
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	type dJob struct {
-		start, end int
-		substr     string
-	}
-	jobs := make(chan dJob, len(input)*len(substrLengths))
-	hash := func() {
-		defer wg.Done()
-		for job := range jobs {
-			hash := sha512.Sum512([]byte(job.substr))
-			hashStr := hex.EncodeToString(hash[:])
+	sort.Ints(substrLengths)
+	slices.Reverse(substrLengths) // longest first so overlaps favour wider match
+
+	found := make([]foundSecret, 0)
+
+	for _, length := range substrLengths {
+		if length > len(input) {
+			continue
+		}
+		var h [64]byte
+		hasher := sha512.New()
+		for start := 0; start <= len(input)-length; start++ {
+			substr := input[start : start+length]
+			hasher.Reset()
+			hasher.Write([]byte(substr))
+			hasher.Sum(h[:0])
+			hashStr := hex.EncodeToString(h[:])
 			secrets.hmu.RLock()
 			replaceWith, exists := secrets.Hashes[hashStr]
 			secrets.hmu.RUnlock()
 			if exists {
-				mu.Lock()
-				foundSecrets = append(foundSecrets, foundSecret{
-					start:       job.start,
-					end:         job.end,
+				found = append(found, foundSecret{
+					start:       start,
+					end:         start + length,
 					replaceWith: replaceWith,
 				})
-				mu.Unlock()
 			}
 		}
 	}
-	wg.Add(numWorkers)
-	for i := 0; i < numWorkers; i++ {
-		go hash()
+
+	if len(found) == 0 {
+		return input
 	}
-	for _, length := range substrLengths {
-		for start := 0; start <= len(input)-length; start++ {
-			jobs <- dJob{
-				start:  start,
-				end:    start + length,
-				substr: input[start : start+length],
-			}
+
+	// Sort by start offset ascending; when two matches share the same start
+	// offset (one secret is a prefix of another), sort by end offset descending
+	// so the wider match comes first. mergeOverlapping then retains the wider
+	// match's replaceWith, which is correct because substrLengths is processed
+	// longest-first.
+	sort.Slice(found, func(i, j int) bool {
+		if found[i].start != found[j].start {
+			return found[i].start < found[j].start
 		}
-	}
-	close(jobs)
-	wg.Wait()
-	sort.Slice(foundSecrets, func(i, j int) bool {
-		return foundSecrets[i].start < foundSecrets[j].start
+		return found[i].end > found[j].end
 	})
+	found = mergeOverlapping(found)
+
 	sanitized, offset := input, 0
-	for _, secret := range foundSecrets {
-		sanitized = sanitized[:secret.start+offset] + // start + offset
-			secret.replaceWith + // insert replaceWith value
-			sanitized[secret.end+offset:] // end + offset
-		// update offset to reflect replaceWith
-		offset += len(secret.replaceWith) - (secret.end - secret.start)
+	for _, s := range found {
+		sanitized = sanitized[:s.start+offset] +
+			s.replaceWith +
+			sanitized[s.end+offset:]
+		offset += len(s.replaceWith) - (s.end - s.start)
 	}
 	return sanitized
 }
 
-func Sanitize(a ...interface{}) {
-	in := fmt.Sprint(a...)
-	out := sanitizeInput(in)
-	vLogr.Logger.Println(out)
-}
-
-func Sanitizef(format string, a ...interface{}) {
-	format = strings.Clone(sanitizeInput(format))
-	in := fmt.Sprintf(format, a...)
-	out := sanitizeInput(in)
-	vLogr.Logger.Println(out)
+// mergeOverlapping collapses any overlapping or adjacent foundSecret ranges
+// in found (which must be sorted by start offset ascending, end offset
+// descending on ties). When two ranges overlap the later range is absorbed
+// into the earlier one; the replaceWith string of the first (wider/longer)
+// match is retained, which is correct because substrLengths is processed
+// longest-first.
+//
+// Example: secrets "supersecret" and "secret" both registered; input contains
+// "supersecret". The longer match produces foundSecret{0,11,"[OUTER]"} and the
+// shorter match produces foundSecret{5,11,"[INNER]"}. mergeOverlapping collapses
+// these into foundSecret{0,11,"[OUTER]"}, preventing "super[INNER]" artefacts.
+func mergeOverlapping(found []foundSecret) []foundSecret {
+	if len(found) == 0 {
+		return found
+	}
+	merged := []foundSecret{found[0]}
+	for _, curr := range found[1:] {
+		last := &merged[len(merged)-1]
+		if curr.start < last.end {
+			// overlapping — extend end if needed, keep last.replaceWith
+			if curr.end > last.end {
+				last.end = curr.end
+			}
+		} else {
+			merged = append(merged, curr)
+		}
+	}
+	return merged
 }

@@ -10,13 +10,38 @@ import (
 	"testing"
 )
 
+func TestGuard(t *testing.T) {
+	// save and nil out vLogr
+	original := vLogr
+	vLogr = nil
+	defer func() { vLogr = original }()
+
+	// functions that return error should return it cleanly
+	if err := TraceReturn("test"); err == nil {
+		t.Error("expected error from TraceReturn with nil vLogr")
+	}
+	if err := Return("test"); err == nil {
+		t.Error("expected error from Return with nil vLogr")
+	}
+
+	// SetLogger should reject nil
+	if err := SetLogger(nil); err == nil {
+		t.Error("expected error from SetLogger(nil)")
+	}
+
+	// vLogr should still be nil after rejected SetLogger
+	if vLogr != nil {
+		t.Error("vLogr should still be nil after SetLogger(nil) was rejected")
+	}
+}
+
 func TestVerboseLogging(t *testing.T) {
 	// Create a temporary directory for logging
 	tempDir, err := os.MkdirTemp("", "verbose_test")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tempDir) // Step 8: Clean up the temp directory after the test
+	defer os.RemoveAll(tempDir)
 
 	// Set the log directory to the temp directory
 	Dir = tempDir
@@ -46,7 +71,7 @@ func TestVerboseLogging(t *testing.T) {
 		t.Fatalf("Failed to read log file: %v", err)
 	}
 
-	// Verify the vLogr does not contain the secret
+	// Verify the logger does not contain the secret
 	logContent := string(logData)
 	if strings.Contains(logContent, secret) {
 		t.Fatalf("The log contains the secret! Log content: %s", logContent)
@@ -89,6 +114,6 @@ func TestVerboseLogging(t *testing.T) {
 	}
 
 	if !strings.Contains(logContent, secret) {
-		t.Fatalf("The secret appaears to have not been removed. No secret printed in log file. Content: %s", logContent)
+		t.Fatalf("The secret appears to have not been removed. No secret printed in log file. Content: %s", logContent)
 	}
 }

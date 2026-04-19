@@ -2,34 +2,8 @@ package verbose
 
 import "testing"
 
-func TestImportSecrets(t *testing.T) {
-	hash1 := "95d9109bfbd8c260006acc5243ad1b28884cdd1198e13932e7b30d08878355e125329df10752d7ff861f4baccb8b75f7572447ca808fe97f6ca33a5276452a06"
-	hash2 := "158eddbc659fde13fea6e818262bc315f9526449b3cc57a6fc2d6b8aa6b4fe1eac82a6e5574c0479846a102a9f9745c65998973112382c3f9e4cce384036f210"
-	hash1Len := 9
-	hash2Len := 10
-	_, err := ImportSecrets(map[string]int{
-		hash1: hash1Len,
-		hash2: hash2Len,
-	})
-	if err != nil {
-		t.Errorf("ImportSecrets failed: %s", err)
-	}
-	if e := IsSecret(hash1); !e {
-		t.Errorf("ImportSecrets failed. hash1 should be a secret. got %v", e)
-	}
-	if e := IsSecret(hash2); !e {
-		t.Errorf("ImportSecrets failed. hash2 should be a secret. got %v", e)
-	}
-	err = RemoveSecret(SecretBytes(hash1))
-	if err != nil {
-		t.Errorf("RemoveSecret failed: %s", err)
-	}
-	err = RemoveSecret(SecretBytes(hash2))
-	if err != nil {
-		t.Errorf("RemoveSecret failed: %s", err)
-	}
-}
-
+// TestSecretBytes_Sha512 verifies that Sha512 produces a 128-character hex
+// string for valid input and returns an error for input below SecretMinLength.
 func TestSecretBytes_Sha512(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -61,5 +35,35 @@ func TestSecretBytes_Sha512(t *testing.T) {
 				t.Errorf("Sha512() got = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// TestImportSecrets verifies that two known SHA-512 hashes can be imported,
+// are subsequently recognised by IsSecret, and can be removed via RemoveSecret.
+func TestImportSecrets(t *testing.T) {
+	hash1 := "95d9109bfbd8c260006acc5243ad1b28884cdd1198e13932e7b30d08878355e125329df10752d7ff861f4baccb8b75f7572447ca808fe97f6ca33a5276452a06"
+	hash2 := "158eddbc659fde13fea6e818262bc315f9526449b3cc57a6fc2d6b8aa6b4fe1eac82a6e5574c0479846a102a9f9745c65998973112382c3f9e4cce384036f210"
+	hash1Len := 9
+	hash2Len := 10
+	_, err := ImportSecrets(map[string]int{
+		hash1: hash1Len,
+		hash2: hash2Len,
+	})
+	if err != nil {
+		t.Errorf("ImportSecrets failed: %s", err)
+	}
+	if e := IsSecret(hash1); !e {
+		t.Errorf("ImportSecrets failed. hash1 should be a secret. got %v", e)
+	}
+	if e := IsSecret(hash2); !e {
+		t.Errorf("ImportSecrets failed. hash2 should be a secret. got %v", e)
+	}
+	err = RemoveSecret(SecretBytes(hash1))
+	if err != nil {
+		t.Errorf("RemoveSecret failed: %s", err)
+	}
+	err = RemoveSecret(SecretBytes(hash2))
+	if err != nil {
+		t.Errorf("RemoveSecret failed: %s", err)
 	}
 }
