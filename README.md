@@ -63,8 +63,8 @@ persists in memory longer than the call that registers it.
             panic(verbose.TracefReturn("invalid -name provided: %v", *name))
         }
 
-        // this will print the secret in plain text because Plain bypasses sanitization
-        verbose.Plain("The raw value is: " + *secret)
+        // bypass sanitization — prints the raw value to the verbose log
+        verbose.Plain("The raw value is:", *secret)
 
         // this will redact the secret automatically
         verbose.Printf("Hello %s, your secret is safe: %s", *name, *secret)
