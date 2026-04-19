@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const VERSION = "0.1.0"
+const VERSION = "0.2.0"
 
 // Dir defines the location of the verbose.log file
 // this package will create. This package will truncate
