@@ -78,16 +78,16 @@ var keyTypes = []KeyType{
 	{"-----BEGIN EC PARAMETERS-----", "-----END EC PARAMETERS-----"},
 	{`"ssh-`, `"`},
 	{"SHA256:", "\n"},
-	{"glpat-", "\n"}, // For GitLab personal access tokens
-	{"ghp_", "\""},   // For GitHub personal access tokens
-	{"DefaultEndpointsProtocol=https;AccountName=", "\""},       // For Azure DevOps
-	{"\"type\": \"service_account\"", "}"},                      // For GCP DevOps
-	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", ""},                // For JWT Tokens
-	{"vault_approle_secret_id=", "\""},                          // For Vault AppRole IDs
-	{"apiVersion: v1", "contexts:"},                             // For Kubernetes Configs
-	{"sk_live_", "\""},                                          // For Stripe Keys
-	{"aws_access_key_id=", "aws_secret_access_key="},            // For AWS DevOps
-	{`{"auths":{"https://index.docker.io/v1/":{"auth":`, "}}}"}, // For Docker Configs
+	{"glpat-", "\n"},
+	{"ghp_", `"`},
+	{"DefaultEndpointsProtocol=https;AccountName=", `"`},
+	{`"type": "service_account"`, "}"},
+	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9", ""},
+	{"vault_approle_secret_id=", `"`},
+	{"apiVersion: v1", "contexts:"},
+	{"sk_live_", `"`},
+	{"aws_access_key_id=", "aws_secret_access_key="},
+	{`{"auths":{"https://index.docker.io/v1/":{"auth":`, `}}}`},
 	{`"arn:aws:`, `",`},
 	{"-----BEGIN PGP MESSAGE-----", "-----END PGP MESSAGE-----"},
 	{"-----BEGIN PGP PUBLIC KEY BLOCK-----", "-----END PGP PUBLIC KEY BLOCK-----"},
@@ -141,8 +141,13 @@ func AddKeyType(kt KeyType) {
 	keyTypes = append(keyTypes, kt)
 }
 
-// RemoveKeyType removes the first KeyType whose Opening matches kt.Opening
-// from the list of patterns. It is safe for concurrent use.
+// RemoveKeyType removes the first KeyType whose Opening and Closing both match
+// kt from the list of patterns. It is safe for concurrent use.
+//
+// Matching on both Opening and Closing is intentional and symmetric with
+// AddKeyType's deduplication logic. Matching only on Opening could silently
+// remove a built-in pattern when the caller intended to remove a custom one
+// that shares the same Opening but has a different Closing.
 //
 // Example:
 //
@@ -151,7 +156,7 @@ func RemoveKeyType(kt KeyType) {
 	keyTypesMu.Lock()
 	defer keyTypesMu.Unlock()
 	for i, k := range keyTypes {
-		if k.Opening == kt.Opening {
+		if k.Opening == kt.Opening && k.Closing == kt.Closing {
 			keyTypes = append(keyTypes[:i], keyTypes[i+1:]...)
 			return
 		}
@@ -237,7 +242,7 @@ func Rinse(input string) (output string) {
 }
 
 // RegexRemoveAnsiEscapeCodes matches all ANSI CSI escape sequences of the form
-// ESC [  m (SGR — Select Graphic Rendition).
+// ESC [ <params> m (SGR — Select Graphic Rendition).
 var RegexRemoveAnsiEscapeCodes = regexp.MustCompile(`\x1b\[[0-9;]*m`)
 
 // RemoveAnsiEscapeCodes strips all ANSI SGR escape sequences from input and
