@@ -38,7 +38,7 @@ Runs the full suite 10 times in a single invocation. Use `COUNT=n` to override:
     make test-repeat COUNT=50
 
 Useful for catching timing-sensitive failures in the concurrent tests such as
-`TestCommitHashConcurrent` and `TestSetKeyConcurrent`.
+`TestCommitHashConcurrent` and `Test_SetKeyConcurrent`.
 
 ### Short mode
 
@@ -63,17 +63,16 @@ Run all fuzz targets back to back:
 
     make fuzz FUZZ_TIME=2m
 
-During `make ci` and `make test`, fuzz targets run in seed-corpus-only mode —
-they exercise all seeded inputs but do not generate new ones. This means fuzz
-tests appear in the normal test output as `FuzzX/seed#N` cases and count toward
-the pass/fail result without adding unbounded runtime to CI.
-
-To run the fuzzer in generative mode (actually mutating inputs to find new
-failures), use the `make fuzz-*` targets directly outside of CI.
+Fuzz targets run their seeded corpus under plain `go test` — you will see them
+appear in normal test output as `FuzzX/seed#N` cases and they count toward the
+pass/fail result without adding unbounded runtime to CI. To run the fuzzer in
+generative mode (actually mutating inputs to find new failures), use the
+`make fuzz-*` targets directly outside of CI.
 
 If the fuzzer finds a failing input it writes it to `testdata/fuzz/<FuzzTarget>/`
-as a corpus file. That file is then replayed on every subsequent `go test` run,
-permanently covering that edge case. Commit these files to the repository.
+as a corpus file. That file is then replayed on every subsequent run of that fuzz
+target. Commit these files to the repository so the edge case is covered
+permanently.
 
 ---
 
@@ -155,7 +154,7 @@ Tests for `SecureBytes` encryption, decryption, and key management.
 | `TestEncryptAlreadyEncrypted` | Calling `Encrypt` on already-encrypted data returns an error |
 | `TestDecryptNotEncrypted` | Calling `Decrypt` on plaintext returns the original string without error |
 | `TestSetKeyInvalidLength` | Table-driven: 15, 16, 24, 32, 33, and empty key lengths — only 16, 24, and 32 are accepted |
-| `TestSetKeyConcurrent` | 100 goroutines calling `SetKey` while 100 more goroutines call `Encrypt`/`Decrypt` — race detector must pass |
+| `Test_SetKeyConcurrent` | 100 goroutines calling `SetKey` while 100 more goroutines call `EncryptUsingKey`/`DecryptUsingKey` with a fixed local key — race detector must pass |
 
 ### `verbose_test.go`
 
@@ -226,5 +225,4 @@ reliably manifest as a test failure without `-race`.
    adding it as a seed to the corresponding fuzz target in `fuzz_test.go` so the
    fuzzer explores mutations from that shape automatically.
 4. Run `make ci` locally before pushing. The GitHub Actions workflow runs the
-   same commands and a local failure is faster to debug than a CI failure.
-
+   same commands and a local failure is faster to debug than a CI failure.​​​​​​​​​​​​​​​​
