@@ -1,8 +1,10 @@
 package verbose
 
 import (
+	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -25,10 +27,10 @@ func TestImportSecretsCount(t *testing.T) {
 	}
 
 	tests := []struct {
-		name          string
-		hashes        map[string]int
-		wantImported  int
-		wantErr       bool
+		name         string
+		hashes       map[string]int
+		wantImported int
+		wantErr      bool
 	}{
 		{
 			name: "all valid",
@@ -58,8 +60,8 @@ func TestImportSecretsCount(t *testing.T) {
 		{
 			name: "mixed valid and invalid",
 			hashes: map[string]int{
-				hash1:    len("import-secret-one"),
-				"bad":    10, // invalid hash
+				hash1: len("import-secret-one"),
+				"bad": 10, // invalid hash
 			},
 			wantImported: 1,
 			wantErr:      true,

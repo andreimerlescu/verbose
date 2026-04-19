@@ -136,16 +136,6 @@ func appendError(errs []error, err error) []error {
 	return errs
 }
 
-// IsSecretEnv uses strings.Contains on SecretEnvs against the env string
-func IsSecretEnv(env string) bool {
-	for _, e := range SecretEnvs {
-		if strings.Contains(env, e) {
-			return true
-		}
-	}
-	return false
-}
-
 // IsSecret returns true if the hash is in the Hashes map in secrets
 func IsSecret(hash string) (exists bool) {
 	secrets.hmu.RLock()
@@ -304,4 +294,3 @@ func commitHash(hash string, replaceWith string, length int) error {
 
 	return nil
 }
-

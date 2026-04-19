@@ -1,6 +1,9 @@
 package verbose
 
 import (
+	"fmt"
+	"strings"
+	"sync"
 	"testing"
 )
 
@@ -47,12 +50,12 @@ func TestAddSecretEnvNoDuplicates(t *testing.T) {
 // TestRemoveSecretEnv verifies that RemoveSecretEnv correctly removes
 // an entry and that IsSecretEnv no longer matches it afterward.
 func TestRemoveSecretEnv(t *testing.T) {
-	AddSecretEnv("UNIQUETOKEN")
-	if !IsSecretEnv("MY_UNIQUETOKEN_VALUE") {
+	AddSecretEnv("ZZZUNIQUE_CANARY_ZZZ")
+	if !IsSecretEnv("MY_ZZZUNIQUE_CANARY_ZZZ_VALUE") {
 		t.Error("expected IsSecretEnv to return true after AddSecretEnv")
 	}
-	RemoveSecretEnv("UNIQUETOKEN")
-	if IsSecretEnv("MY_UNIQUETOKEN_VALUE") {
+	RemoveSecretEnv("ZZZUNIQUE_CANARY_ZZZ")
+	if IsSecretEnv("MY_ZZZUNIQUE_CANARY_ZZZ_VALUE") {
 		t.Error("expected IsSecretEnv to return false after RemoveSecretEnv")
 	}
 }
@@ -125,9 +128,9 @@ hQEMA0n5Jk4B+eEBARAAszWqXElZ+QK/0T9F...qS38R5x4jA5YcpOCpLe9Jgn1bTz3FpHw
 			expectError:    false,
 		},
 		{
-    		input: "First JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.firsttoken\nSecond JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.secondtoken\n",
-    		expectedOutput: "First JWT: [CLEANED]\nSecond JWT: [CLEANED]\n",
-    		expectError:    false,
+			input:          "First JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.firsttoken\nSecond JWT: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.secondtoken\n",
+			expectedOutput: "First JWT: [CLEANED]\nSecond JWT: [CLEANED]\n",
+			expectError:    false,
 		},
 		{
 			input:          "Some text with a JWT token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sometoken...\n",
