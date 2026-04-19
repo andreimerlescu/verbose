@@ -38,12 +38,6 @@ var vLogr *Logger
 var (
 	To      = SanitizeTo
 	Tof     = SanitizefTo
-	Plain   = toAsis
-	Plainf  = toAsf
-	Raw     = toAsis
-	Rawf    = toAsf
-	Expose  = toAsis
-	Exposef = toAsf
 	Hide    = Sanitize
 	Hidef   = Sanitizef
 	Printf  = Sanitizef
@@ -53,8 +47,62 @@ var (
 	Sprintf = Sanitizef
 )
 
+// Plain logs args to the verbose logger without applying sanitizeInput or
+// Scrub. Use it only when you deliberately need unsanitised output (e.g.
+// debugging the sanitizer itself). Never use it to log values that may contain
+// secrets.
+//
+// It is a no-op (printing to stderr) if NewLogger or SetLogger has not been
+// called.
+//
+// Example:
+//
+//	verbose.Plain("raw value:", rawString)
+func Plain(args ...interface{}) {
+	if err := guard(); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+		return
+	}
+	vLogr.Logger.Println(args...)
+}
+
+// Plainf formats args using format and logs the result to the verbose logger
+// without applying sanitizeInput or Scrub. See Plain for caveats.
+//
+// Example:
+//
+//	verbose.Plainf("raw value: %s", rawString)
+func Plainf(format string, args ...interface{}) {
+	if err := guard(); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+		return
+	}
+	vLogr.Logger.Printf(format, args...)
+}
+
+// Raw is an alias for Plain. See Plain for full documentation.
+func Raw(args ...interface{}) {
+	Plain(args...)
+}
+
+// Rawf is an alias for Plainf. See Plainf for full documentation.
+func Rawf(format string, args ...interface{}) {
+	Plainf(format, args...)
+}
+
+// Expose is an alias for Plain. See Plain for full documentation.
+func Expose(args ...interface{}) {
+	Plain(args...)
+}
+
+// Exposef is an alias for Plainf. See Plainf for full documentation.
+func Exposef(format string, args ...interface{}) {
+	Plainf(format, args...)
+}
+
 // Trace logs v to the verbose logger with a full stack trace appended.
-// It is a no-op (printing to stderr) if NewLogger has not been called.
+// It is a no-op (printing to stderr) if NewLogger or SetLogger has not been
+// called.
 //
 // Example:
 //
@@ -69,7 +117,7 @@ func Trace(v ...interface{}) {
 
 // Tracef formats v using format, logs the result to the verbose logger, and
 // appends a full stack trace. It is a no-op (printing to stderr) if NewLogger
-// has not been called.
+// or SetLogger has not been called.
 //
 // Example:
 //
@@ -83,8 +131,8 @@ func Tracef(format string, v ...interface{}) {
 }
 
 // TraceReturn logs v with a full stack trace and returns the message as an
-// error. If NewLogger has not been called the guard error is returned directly
-// so the caller is always informed of the failure.
+// error. If NewLogger or SetLogger has not been called the guard error is
+// returned directly so the caller is always informed of the failure.
 //
 // Example:
 //
@@ -97,8 +145,8 @@ func TraceReturn(v ...interface{}) error {
 }
 
 // TracefReturn formats v using format, logs the result with a full stack trace,
-// and returns the formatted message as an error. If NewLogger has not been
-// called the guard error is returned directly.
+// and returns the formatted message as an error. If NewLogger or SetLogger has
+// not been called the guard error is returned directly.
 //
 // Example:
 //
@@ -110,9 +158,9 @@ func TracefReturn(format string, v ...interface{}) error {
 	return vLogr.TracefReturn(format, v...)
 }
 
-// Return logs v and returns the formatted message as an error. If NewLogger
-// has not been called the guard error is returned directly so callers always
-// receive a non-nil error in that case.
+// Return logs v and returns the formatted message as an error. If NewLogger or
+// SetLogger has not been called the guard error is returned directly so callers
+// always receive a non-nil error in that case.
 //
 // Example:
 //
@@ -128,7 +176,8 @@ func Return(v ...interface{}) error {
 }
 
 // Returnf formats v using format, logs the result, and returns it as an error.
-// If NewLogger has not been called the guard error is returned directly.
+// If NewLogger or SetLogger has not been called the guard error is returned
+// directly.
 //
 // Example:
 //
@@ -142,7 +191,7 @@ func Returnf(format string, v ...interface{}) error {
 }
 
 // AsLn writes args to the verbose logger using Println semantics. It is a
-// no-op (printing to stderr) if NewLogger has not been called.
+// no-op (printing to stderr) if NewLogger or SetLogger has not been called.
 func AsLn(args ...interface{}) {
 	if err := guard(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -159,29 +208,11 @@ func toAsf(customerLogger *log.Logger, format string, args ...interface{}) {
 	customerLogger.Printf(format, args...)
 }
 
-// toAsis writes args to customLogger without applying sanitizeInput or Scrub.
-// It is the backing implementation for Plain, Raw, and Expose. Use it only
-// when you deliberately need unsanitised output (e.g. debugging the sanitizer
-// itself). Never use it to log values that may contain secrets.
-func toAsis(customLogger *log.Logger, args ...interface{}) {
-	sanitizedArgs := make([]interface{}, len(args))
-	for i, arg := range args {
-		if strArg, ok := arg.(string); ok {
-			sanitizedArgs[i] = strArg
-		} else {
-			sanitizedArgs[i] = arg
-		}
-	}
-	customLogger.Println(sanitizedArgs...)
-}
-
 // SanitizeTo sanitizes each string argument against the registered secrets and
 // KeyType patterns, then writes the result to customLogger using Println.
 //
-// guard() is called before writing to ensure the package logger is
-// initialised. This protects against races where a custom logger is provided
-// but the package-level vLogr has not yet been set up, which could indicate a
-// misconfigured caller.
+// customLogger must be non-nil; passing nil will print an error to stderr and
+// return without panicking.
 //
 // Note: the design philosophy of this package is that all output passing
 // through a verbose function is also written to the verbose logger. If you
@@ -192,6 +223,10 @@ func toAsis(customLogger *log.Logger, args ...interface{}) {
 //
 //	verbose.SanitizeTo(myLogger, "user connected", username)
 func SanitizeTo(customLogger *log.Logger, args ...interface{}) {
+	if customLogger == nil {
+		_, _ = fmt.Fprintf(os.Stderr, "verbose: SanitizeTo called with nil customLogger\n")
+		return
+	}
 	if err := guard(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		return
@@ -211,12 +246,17 @@ func SanitizeTo(customLogger *log.Logger, args ...interface{}) {
 // secrets and KeyType patterns, then writes the formatted result to
 // customLogger using Printf.
 //
-// See SanitizeTo for the rationale behind the guard() call.
+// customLogger must be non-nil; passing nil will print an error to stderr and
+// return without panicking.
 //
 // Example:
 //
 //	verbose.SanitizefTo(myLogger, "request from %s took %dms", ip, ms)
 func SanitizefTo(customLogger *log.Logger, format string, args ...interface{}) {
+	if customLogger == nil {
+		_, _ = fmt.Fprintf(os.Stderr, "verbose: SanitizefTo called with nil customLogger\n")
+		return
+	}
 	if err := guard(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		return
@@ -236,10 +276,13 @@ func SanitizefTo(customLogger *log.Logger, format string, args ...interface{}) {
 // Errorf formats args using format, sanitizes the result, writes it to
 // customLogger, and returns the sanitized string as an error.
 //
-// If guard() fails (i.e. NewLogger has not been called), the guard error is
-// printed to stderr and returned to the caller. Returning the error (rather
-// than nil) ensures the caller is always informed of the initialisation
-// failure and can handle or propagate it rather than silently continuing.
+// customLogger must be non-nil; passing nil will print an error to stderr and
+// return that error without panicking.
+//
+// Unlike other verbose functions, Errorf does not require the package-wide
+// logger to be initialised via NewLogger or SetLogger. This allows it to be
+// used during early initialisation (e.g. inside NewLogger itself) when vLogr
+// is not yet available.
 //
 // Example:
 //
@@ -247,7 +290,8 @@ func SanitizefTo(customLogger *log.Logger, format string, args ...interface{}) {
 //	    return verbose.Errorf(myLogger, "db ping failed: %v", err)
 //	}
 func Errorf(customLogger *log.Logger, format string, args ...interface{}) error {
-	if err := guard(); err != nil {
+	if customLogger == nil {
+		err := errors.New("verbose: Errorf called with nil customLogger")
 		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		return err
 	}
@@ -286,7 +330,7 @@ func SetLogger(newLogger *Logger) error {
 // nil-pointer panics when the caller has not called NewLogger or SetLogger.
 func guard() error {
 	if vLogr == nil {
-		return errors.New("verbose: NewLogger has not been called")
+		return errors.New("verbose: NewLogger or SetLogger has not been called")
 	}
 	return nil
 }
@@ -297,7 +341,7 @@ type Options struct {
 	Dir string
 
 	// Name sets the filename prefix of the log file. The file will be named
-	// ".log". If empty, the file is named "verbose.log".
+	// "<Name>.log". If empty, the file is named "verbose.log".
 	Name string
 
 	// Truncate controls whether the log file is truncated (O_TRUNC) or
@@ -378,4 +422,43 @@ func NewLogger(opts Options) error {
 		return errors.New("verbose vLogr is still nil after being defined")
 	}
 	return nil
+}
+
+// Sanitize formats args with fmt.Sprint, sanitizes the result against all
+// registered secrets, and writes the sanitized string to the verbose logger.
+//
+// It is a no-op (printing to stderr) if NewLogger or SetLogger has not been
+// called.
+//
+// Note: Sanitize does not return a string. The design philosophy of this
+// package is that every string passing through a verbose function is written
+// to the verbose logger. Use fmt.Sprintf if you need a formatted string
+// without logging it.
+func Sanitize(a ...interface{}) {
+	if err := guard(); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+		return
+	}
+	in := fmt.Sprint(a...)
+	out := sanitizeInput(in)
+	vLogr.Logger.Println(out)
+}
+
+// Sanitizef formats args using format and fmt.Sprintf, sanitizes both the
+// format string and the formatted result against all registered secrets, and
+// writes the sanitized output to the verbose logger.
+//
+// It is a no-op (printing to stderr) if NewLogger or SetLogger has not been
+// called.
+//
+// Note: Sanitizef does not return a string. See Sanitize for the rationale.
+func Sanitizef(format string, a ...interface{}) {
+	if err := guard(); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
+		return
+	}
+	format = strings.Clone(sanitizeInput(format))
+	in := fmt.Sprintf(format, a...)
+	out := sanitizeInput(in)
+	vLogr.Logger.Println(out)
 }
