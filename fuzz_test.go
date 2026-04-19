@@ -1,4 +1,3 @@
-// fuzz_test.go
 package verbose
 
 import (

@@ -1,8 +1,18 @@
 # Verbose Package
 
+![Verbose by Andrei Merlescu](/verbose.jpg)
+
 A Go logging utility that automatically scrubs secrets from log output — passwords,
 tokens, private keys, JWTs, and more — before they ever reach disk. Built for
 production systems where a leaked credential in a log file is a breach.
+
+[![Go Version](https://img.shields.io/badge/go-1.23.4-blue?logo=go)](https://golang.org/dl/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/andreimerlescu/verbose)](https://goreportcard.com/report/github.com/andreimerlescu/verbose)
+[![GoDoc](https://pkg.go.dev/badge/github.com/andreimerlescu/verbose.svg)](https://pkg.go.dev/github.com/andreimerlescu/verbose)
+[![License](https://img.shields.io/badge/license-Apache%202.0-green)](https://github.com/andreimerlescu/verbose/blob/master/LICENSE)
+[![CI](https://github.com/andreimerlescu/verbose/actions/workflows/go.yml/badge.svg)](https://github.com/andreimerlescu/verbose/actions/workflows/go.yml)
+[![Race Safe](https://img.shields.io/badge/race--safe-yes-brightgreen)](#)
+[![Zero Allocs](https://img.shields.io/badge/empty--input-0%20allocs-brightgreen)](#)
 
 ## Why Verbose?
 
