@@ -35,6 +35,32 @@ persists in memory longer than the call that registers it.
   merged correctly, concurrent registration and removal of secrets is race-free
 - **Zero allocs on empty input** — the fast path costs 1.4 ns and touches no heap
 
+## Origin
+
+Verbose was built in 2024 to solve a real production problem: a payment and
+communications platform needed a logger that could protect sensitive customer
+information that only becomes known at runtime — not at startup.
+
+Most logging packages assume you configure redaction once before your program
+starts. That assumption breaks down in systems where secrets arrive dynamically:
+a customer record loaded from a database mid-request, an API token fetched from
+a secrets manager on demand, an OAuth credential exchanged during a live session.
+In those systems there is a window — however brief — between the moment a secret
+is known and the moment the logger is told about it. In a high-throughput
+concurrent system that window is a real risk.
+
+Verbose was designed around the opposite assumption: secrets are registered the
+instant they become known, from any goroutine, with no restart and no
+reconfiguration required. From that moment forward every log call across the
+entire program is sanitized against that value. The plaintext is never retained —
+only its SHA-512 digest is stored — so there is no in-memory secret to leak even
+if the registry itself were somehow exposed.
+
+To our (Claude + Gemini + Grok + Andrei) knowledge no other Go logging package 
+published before 2024 ships this pattern as a first-class feature: concurrent 
+runtime secret injection with hash-based storage, zero plaintext retention, and 
+immediate effect across all active goroutines.
+
 ## Installation
 
     go get -u github.com/andreimerlescu/verbose
