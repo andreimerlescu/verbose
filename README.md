@@ -1,6 +1,6 @@
 # Verbose Package
 
-![Verbose by Andrei Merlescu](/verbose.jpg)
+![Verbose by Andrei Merlescu](/verbose_cool.jpg)
 
 A Go logging utility that automatically scrubs secrets from log output — passwords,
 tokens, private keys, JWTs, and more — before they ever reach disk. Built for
