@@ -3,10 +3,8 @@ package verbose
 import (
 	"crypto/sha512"
 	"encoding/hex"
-	"fmt"
-	"slices"
 	"sort"
-	"strings"
+	"slices"
 )
 
 // foundSecret records a detected secret within an input string together with
@@ -109,8 +107,16 @@ func sanitizeInput(input string) string {
 		return input
 	}
 
+	// Sort by start offset ascending; when two matches share the same start
+	// offset (one secret is a prefix of another), sort by end offset descending
+	// so the wider match comes first. mergeOverlapping then retains the wider
+	// match's replaceWith, which is correct because substrLengths is processed
+	// longest-first.
 	sort.Slice(found, func(i, j int) bool {
-		return found[i].start < found[j].start
+		if found[i].start != found[j].start {
+			return found[i].start < found[j].start
+		}
+		return found[i].end > found[j].end
 	})
 	found = mergeOverlapping(found)
 
@@ -124,36 +130,12 @@ func sanitizeInput(input string) string {
 	return sanitized
 }
 
-// Sanitize formats args with fmt.Sprint, sanitizes the result against all
-// registered secrets, and writes the sanitized string to the verbose logger.
-//
-// Note: Sanitize does not return a string. The design philosophy of this
-// package is that every string passing through a verbose function is written
-// to the verbose logger. Use fmt.Sprintf if you need a formatted string
-// without logging it.
-func Sanitize(a ...interface{}) {
-	in := fmt.Sprint(a...)
-	out := sanitizeInput(in)
-	vLogr.Logger.Println(out)
-}
-
-// Sanitizef formats args using format and fmt.Sprintf, sanitizes both the
-// format string and the formatted result against all registered secrets, and
-// writes the sanitized output to the verbose logger.
-//
-// Note: Sanitizef does not return a string. See Sanitize for the rationale.
-func Sanitizef(format string, a ...interface{}) {
-	format = strings.Clone(sanitizeInput(format))
-	in := fmt.Sprintf(format, a...)
-	out := sanitizeInput(in)
-	vLogr.Logger.Println(out)
-}
-
 // mergeOverlapping collapses any overlapping or adjacent foundSecret ranges
-// in found (which must be sorted by start offset ascending). When two ranges
-// overlap the later range is absorbed into the earlier one; the replaceWith
-// string of the first (wider/longer) match is retained, which is correct
-// because substrLengths is processed longest-first.
+// in found (which must be sorted by start offset ascending, end offset
+// descending on ties). When two ranges overlap the later range is absorbed
+// into the earlier one; the replaceWith string of the first (wider/longer)
+// match is retained, which is correct because substrLengths is processed
+// longest-first.
 //
 // Example: secrets "supersecret" and "secret" both registered; input contains
 // "supersecret". The longer match produces foundSecret{0,11,"[OUTER]"} and the
