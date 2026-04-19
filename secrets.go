@@ -63,7 +63,7 @@ var secrets = NewSecrets()
 // would produce an unacceptably large number of false-positive matches when
 // scanning log output.
 //
-// Lowering this value increases sanitiseInput CPU time O(n²) in input length.
+// Lowering this value increases sanitizeInput CPU time O(n²) in input length.
 // The default of 5 is a practical lower bound for most deployments.
 var SecretMinLength = 5
 
