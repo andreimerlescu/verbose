@@ -13,6 +13,7 @@ production systems where a leaked credential in a log file is a breach.
 [![CI](https://github.com/andreimerlescu/verbose/actions/workflows/go.yml/badge.svg)](https://github.com/andreimerlescu/verbose/actions/workflows/go.yml)
 [![Race Safe](https://img.shields.io/badge/race--safe-yes-brightgreen)](#)
 [![Zero Allocs](https://img.shields.io/badge/empty--input-0%20allocs-brightgreen)](#)
+![Unique](https://counthis.app/github?repository=andreimerlescu/verbose&label=Unique) ![Visitors](https://counthis.app/g/qyjy5vwjtjgbjfzy)
 
 ## Why Verbose?
 
